@@ -13,7 +13,6 @@ Discord: <a href="https://discord.gg/24Ts7mZxnS">Discord</a>
 ***
 
 ####
-#### <a href="https://github.com/tootechautomation/TrendTrader/releases/tag/TrendTrader_2023_R1">[        Pre-Release (TOS Specific, working towards optimization)       ]</a>
 ####
 
 
