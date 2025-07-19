@@ -42,30 +42,30 @@ Backtest speed: 3x
 # Results From Backtesting
 
 
-| July        | Profits | Trade Type   |   | Mar        | Profits | Trade Type   |   | Apr        | Profits | Trade Type   |   |
+| June        | Profits | Trade Type   |   | Mar        | Profits | Trade Type   |   | Apr        | Profits | Trade Type   |   |
 | ---------- |:-------:|:------------:|:-:|:----------:|:-------:|:------------:|:-:|:----------:|:-------:|:------------:| -:|
-| 7/1/25     | +$1640  |  Full Day    |   | 3/1/23     | +$220   |  Full Day    |   | 4/3/23     | $0      |  Full Day    |   |
-| 7/2/25     | +$1660  |  Full Day    |   | 3/2/23     | +$1040  |  Full Day    |   | 4/4/23     | $0      |  Full Day    |   |
-| 7/3/25     | +$1140  |  Full Day    |   | 3/3/23     | -$1000  |  Partial Day |   | 4/5/23     | $0      |  Full Day    |   |
-| 7/4/25     | -$240   |  Full Day    |   | 3/6/23     | +$560   |  Full Day    |   | 4/6/23     | $0      |  Full Day    |   |
-| 7/5/25     | +$4500  |  Full Day    |   | 3/7/23     | +$320   |  Full Day    |   | 4/7/23     | $0      |  Full Day    |   |
-| 7/6/25     | -$640   |  Full Day    |   | 3/8/23     | -$1000  |  Full Day    |   | 4/10/23    | $0      |  Full Day    |   |
-| 7/7/25     | +$1340  |  Full Day    |   | 3/9/23     | -$1660  |  Full Day    |   | 4/11/23    | $0      |  Full Day    |   |
-| 7/8/25    | +$1640  |  Full Day    |   | 3/10/23    | +$1660  |  Full Day    |   | 4/12/23    | $0      |  Full Day    |   |
-| 7/9/25    | -$640   |  Full Day    |   | 3/13/23    | -$1520  |  Partial Day |   | 4/13/23    | $0      |  Full Day    |   |
--| 7/10/25    | +$1640  |  Full Day    |   | 3/14/23    | +$60    |  Full Day    |   | 4/14/23    | $0      |  Full Day    |   |-
-| 7/11/25    | -$480   |  Full Day    |   | 3/15/23    | -$1080  |  Full Day    |   | 4/17/23    | $0      |  Full Day    |   |
-| 7/12/25    | -$960   |  Full Day    |   | 3/16/23    | +$1320  |  Full Day    |   | 4/18/23    | $0      |  Full Day    |   |
-| 7/13/25    | -$120   |  Full Day    |   | 3/17/23    | -$2080  |  Full Day    |   | 4/19/23    | $0      |  Full Day    |   |
-| 7/14/25    | +$340   |  Full Day    |   | 3/20/23    | -$520   |  Full Day    |   | 4/20/23    | $0      |  Full Day    |   |
-| 7/15/25    | +$620   |  Full Day    |   | 3/21/23    | +$2140  |  Full Day    |   | 4/21/23    | $0      |  Full Day    |   |
-| 7/16/25    | +$160   |  Full Day    |   | 3/22/23    | +$1920  |  Full Day    |   | 4/24/23    | $0      |  Full Day    |   |
-| 7/17/25    | +$120   |  Full Day    |   | 3/23/23    | +$3780  |  Full Day    |   | 4/25/23    | $0      |  Full Day    |   |
--| 7/18/25    | +$1000+  |  Full Day    |   | 3/24/23    | -$400   |  Full Day    |   | 4/26/23    | $0      |  Full Day    |   |-
-| 7/19/25    | -$380   |  Full Day    |   | 3/27/23    | +$2720  |  Full Day    |   | 4/27/23    | $0      |  Full Day    |   |
--| 7/20/25    |  +$1200+       |              |   | 3/28/23    | +$380   |  Full Day    |   | 4/28/23    | $0      |  Full Day    |   |-
--| 7/23/25    |  +$4000+       |              |   | 3/28/23    | +$380   |  Full Day    |   | 4/28/23    | $0      |  Full Day    |   |-
--| 7/24/25    |  -$1000       |              |   | 3/28/23    | +$380   |  Full Day    |   | 4/28/23    | $0      |  Full Day    |   |-
+| 6/1/25     | +$1640  |  Full Day    |   | 3/1/23     | +$220   |  Full Day    |   | 4/3/23     | $0      |  Full Day    |   |
+| 6/2/25     | +$1660  |  Full Day    |   | 3/2/23     | +$1040  |  Full Day    |   | 4/4/23     | $0      |  Full Day    |   |
+| 6/3/25     | +$1140  |  Full Day    |   | 3/3/23     | -$1000  |  Partial Day |   | 4/5/23     | $0      |  Full Day    |   |
+| 6/4/25     | -$240   |  Full Day    |   | 3/6/23     | +$560   |  Full Day    |   | 4/6/23     | $0      |  Full Day    |   |
+| 6/5/25     | +$4500  |  Full Day    |   | 3/7/23     | +$320   |  Full Day    |   | 4/7/23     | $0      |  Full Day    |   |
+| 6/6/25     | -$640   |  Full Day    |   | 3/8/23     | -$1000  |  Full Day    |   | 4/10/23    | $0      |  Full Day    |   |
+| 6/7/25     | +$1340  |  Full Day    |   | 3/9/23     | -$1660  |  Full Day    |   | 4/11/23    | $0      |  Full Day    |   |
+| 6/8/25    | +$1640  |  Full Day    |   | 3/10/23    | +$1660  |  Full Day    |   | 4/12/23    | $0      |  Full Day    |   |
+| 6/9/25    | -$640   |  Full Day    |   | 3/13/23    | -$1520  |  Partial Day |   | 4/13/23    | $0      |  Full Day    |   |
+-| 6/10/25    | +$1640  |  Full Day    |   | 3/14/23    | +$60    |  Full Day    |   | 4/14/23    | $0      |  Full Day    |   |-
+| 6/11/25    | -$480   |  Full Day    |   | 3/15/23    | -$1080  |  Full Day    |   | 4/17/23    | $0      |  Full Day    |   |
+| 6/12/25    | -$960   |  Full Day    |   | 3/16/23    | +$1320  |  Full Day    |   | 4/18/23    | $0      |  Full Day    |   |
+| 6/13/25    | -$120   |  Full Day    |   | 3/17/23    | -$2080  |  Full Day    |   | 4/19/23    | $0      |  Full Day    |   |
+| 6/14/25    | +$340   |  Full Day    |   | 3/20/23    | -$520   |  Full Day    |   | 4/20/23    | $0      |  Full Day    |   |
+| 6/15/25    | +$620   |  Full Day    |   | 3/21/23    | +$2140  |  Full Day    |   | 4/21/23    | $0      |  Full Day    |   |
+| 6/16/25    | +$160   |  Full Day    |   | 3/22/23    | +$1920  |  Full Day    |   | 4/24/23    | $0      |  Full Day    |   |
+| 6/17/25    | +$120   |  Full Day    |   | 3/23/23    | +$3780  |  Full Day    |   | 4/25/23    | $0      |  Full Day    |   |
+-| 6/18/25    | +$1000+  |  Full Day    |   | 3/24/23    | -$400   |  Full Day    |   | 4/26/23    | $0      |  Full Day    |   |-
+| 6/19/25    | -$380   |  Full Day    |   | 3/27/23    | +$2720  |  Full Day    |   | 4/27/23    | $0      |  Full Day    |   |
+-| 6/20/25    |  +$1200+       |              |   | 3/28/23    | +$380   |  Full Day    |   | 4/28/23    | $0      |  Full Day    |   |-
+-| 6/23/25    |  +$4000+       |              |   | 3/28/23    | +$380   |  Full Day    |   | 4/28/23    | $0      |  Full Day    |   |-
+-| 6/24/25    |  -$1000       |              |   | 3/28/23    | +$380   |  Full Day    |   | 4/28/23    | $0      |  Full Day    |   |-
 |            |         |              |   | 3/31/23    | +$760   |  Full Day    |   |            |         |              |   |
 | Total      | +$12,760|  Month       |   | Total      | $8,280  |  Month       |   | Total      | $0      |  Month       |   |
 
