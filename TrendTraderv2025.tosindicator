@@ -1,0 +1,229 @@
+input SYMBOL = "SOXL";
+def SYMBOLx = if GetSymbol() == SYMBOL then 1 else 0;
+
+#declare lower;
+input length = 200; # 50
+input TLength1 = 50;
+
+def Inertia1 = InertiaAll(close, length);
+def Inert1   = InertiaAll(close, TLength1);
+#AddLabel(yes, Inertia1x);
+
+def TL_Bull1 = Inertia1 - (HighestAll(AbsValue(Inertia1 - close)) * 0.8) + (TL_Bull1[1] * 0.0025);
+def TL_Bear1 = Inertia1 + (HighestAll(AbsValue(Inertia1 - close)) * 0.8) - (TL_Bear1[1] * 0.0025);
+def slope1a = TL_Bull1 > TL_Bull1[1];
+def slope1b = TL_Bear1 > TL_Bear1[1];
+
+def TL_Bu1 = Inert1 - (HighestAll(AbsValue(Inert1 - close)) * 0.8);
+def TL_Be1 = Inert1 + (HighestAll(AbsValue(Inert1 - close)) * 0.8);
+def slop1a = TL_Bu1 > TL_Bu1[1];
+def slop1b = TL_Be1 > TL_Be1[1];
+
+
+plot TrendLine1a = if slope1a > 0 then TL_Bull1 else TL_Bear1;
+TrendLine1a.SetStyle(Curve.LONG_DASH);
+TrendLine1a.SetLineWeight(1);
+TrendLine1a.AssignValueColor(if slope1a and IsAscending(close, 10) then Color.BLUE else if slope1a then Color.BLUE else if !IsAscending(close, 10) then Color.BLUE else Color.BLUE);
+
+plot TrendLine1b = if slope1b > 0 then TL_Bear1 else TL_Bull1;
+TrendLine1b.SetStyle(Curve.LONG_DASH);
+TrendLine1b.SetLineWeight(1);
+TrendLine1b.AssignValueColor(if slope1b and IsAscending(close, 10) then Color.GREEN else if slope1b then Color.GREEN else if !IsAscending(close, 10) then Color.GREEN else Color.GREEN);
+
+plot TLine1a = if slop1a > 0 then TL_Bu1 else TL_Be1;
+TLine1a.SetStyle(curve.long_dash);
+TLine1a.SetLineWeight(1);
+TLine1a.assignvaluecolor(if slop1a and IsAscending(close, 10) then Color.CYAN else if slop1a then color.CYAN else if !IsAscending(close, 10)then color.CYAN else color.CYAN);
+plot TLine1b = if slop1b > 0 then TL_Be1 else TL_Bu1;
+TLine1b.SetStyle(curve.long_dash);
+TLine1b.SetLineWeight(1);
+TLine1b.assignvaluecolor(if slop1b and IsAscending(close, 10) then color.ORANGE else if slop1b then color.ORANGE else if !IsAscending(close, 10)then color.ORANGE else color.ORANGE);
+
+def percent_adj = 0.0025;  # 0.0025
+
+def FastUP =  (low[1] <= TL_Bull1[1] and
+                low[1] <= (TL_Bull1[1] - ( TL_Bull1[1] * percent_adj)) and # high[1] > TL_Bull1[1]) and
+               (low < TL_Bull1 and
+                close > open and high > TL_Bull1));
+def FastUP1 = (low[1] <= TL_Bu1[1] and
+                low[1] <= (TL_Bu1[1] - ( TL_Bu1[1] * percent_adj)) and # high[1] > TL_Bull1[1]) and
+               (low < TL_Bu1 and
+                close > open and high > TL_Bu1));
+
+def FastDN =  ( high[1] >= TL_Bear1[1] and high[1] >= (TL_Bear1[1] + (TL_Bear1[1] * percent_adj)) and #low[1] < TL_Bear1[1] 
+              (high > TL_Bear1 and
+                   close < open and low < TL_Bear1));
+
+def FastDN1 =  ( high[1] >= TL_Be1[1] and high[1] >= (TL_Be1[1] + (TL_Be1[1] * percent_adj)) and #low[1] < TL_Bear1[1] 
+              (high > TL_Be1 and
+                   close < open and low < TL_Be1));
+
+#AddLabel(yes,  high[1] >= TL_Bear1[1]);
+#AddLabel(yes, high[1] > (TL_Bear1[1] + (TL_Bear1[1] * percent_adj)));
+#AddLabel(yes, high > TL_Bear1);
+#AddLabel(yes, close < open and low < TL_Bear1);
+
+#AddLabel(yes,  low[1] <= TL_Bull1[1]);
+#AddLabel(yes,  low[1] < (TL_Bull1[1] - ( TL_Bull1[1] * percent_adj)));
+#AddLabel(yes, low < TL_Bull1);
+#AddLabel(yes,  close > open and high > TL_Bull1);
+
+#AddLabel(yes,  round(TL_Bear1 ,2));
+#AddLabel(yes, round(TL_Bull1, 2));
+
+
+
+
+
+
+def fup = if FastUP == 1 or
+             FastUP1 == 1 
+             then 1 else 
+          if FastDN == 1 or
+             FastDN1 == 1 
+             then 0 else -1;
+
+plot tex = AbsValue( TL_Bear1 + ( TL_Bear1 * percent_adj));
+tex.SetPaintingStrategy(PaintingStrategy.POINTS);
+tex.SetDefaultColor(Color.CYAN);
+plot tex1 = AbsValue(TL_Bull1 - (TL_Bull1 * percent_adj));
+tex1.SetPaintingStrategy(PaintingStrategy.POINTS);
+tex1.SetDefaultColor(Color.CYAN);
+
+plot stex = AbsValue( TL_Be1 + ( TL_Be1 * percent_adj));
+tex.SetPaintingStrategy(PaintingStrategy.POINTS);
+tex.SetDefaultColor(Color.YELLOW);
+plot stex1 = AbsValue(TL_Bu1 - (TL_Bu1 * percent_adj));
+tex1.SetPaintingStrategy(PaintingStrategy.POINTS);
+tex1.SetDefaultColor(Color.YELLOW);
+
+#plot fupx = if fup != -1 then fup else Double.NaN;
+#fupx.SetPaintingStrategy(PaintingStrategy.VALUES_BELOW);
+
+# Store the price at the trigger point
+def triggerPrice = if fup >= 0 then open else triggerPrice[1];
+def triggerPriceLow = if fup == 1 then low else triggerPriceLow[1];
+def triggerPriceHigh = if fup == 0 then high else triggerPriceHigh[1];
+def triggerAction = if fup == 1 then 1 else if fup == 0 then 0 else triggerAction[1];
+# Track whether we are in a triggered state
+def isTriggered = if fup >= 0 then 1 else if isTriggered[1] then 1 else 0;
+
+
+def marketOpenTime = 0930; # 9:30 AM ET 
+def marketCloseTime = 1600; # 4:00 PM ET
+
+def isMarketOpen = if SecondsFromTime(marketOpenTime) >= 0 and SecondsTillTime(marketCloseTime) > 0 then 1 else 0;
+
+#def CurrentStatusExpectation = if fup == 1 && isMarketOpen then 1 else
+#                               if fup == 0 && isMarketOpen then 0 else #CurrentStatusExpectation[1];
+
+
+
+#def expected_position = if fup == -1 && low  > triggerPrice  then 1 else
+#                        if fup == -1 && high < triggerPrice  then 0 else
+#                        if fup == -1 && high < triggerPrice  then 0 else
+#                        if fup == -1 && low  > triggerPrice  then 1 else -1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AddLabel(SYMBOLx, if fup == 1 && isMarketOpen then "UPTREND" else 
+                  if fup == 0 && isMarketOpen then "DNTREND" else
+                  if !isMarketOpen then "MCLOSED" else "NBTREND",
+                  if fup == 1 && isMarketOpen then Color.GREEN else 
+                  if fup == 0 && isMarketOpen then Color.RED else              if !isMarketOpen then Color.RED else Color.WHITE);
+
+#AddLabel(SYMBOLx, "  ", Color.WHITE);
+#AddLabel(SYMBOLx, if expected_position == 1  then "LONG" else
+#                  if expected_position == 0  then "SHRT" else "NADA",
+#
+#                  if expected_position == 1 then Color.GREEN else
+#                  if expected_position == 0 then Color.Red else Color.WHITE);
+#AddLabel(SYMBOLx, "  ", Color.WHITE);
+
+
+
+
+#def breakout = if triggerAction==1   and 
+#                  low <= triggerPrice and 
+#                   close < open      and
+#                  low <= triggerPriceLow   then 0 else
+#               if triggerAction==0 and
+#                  high >= triggerPrice and
+#                  close > open and
+#                  high >= triggerPriceHigh then 1 else -1;
+
+#AddLabel(yes, if breakout == 1 then "UPTREND" else 
+#              if breakout == 0 then "DNTREND" else "xng",
+#              if breakout == 1 then Color.GREEN else 
+#              if breakout == 0 then Color.RED else Color.WHITE);
+
+
+def current_bar = if BarNumber() == Max(BarNumber(), 0) then 1 else 0;
+
+AssignPriceColor(if fup == 1 && close > open and current_bar then Color.LIGHT_GREEN   else 
+                 if fup == 0 && close < open and current_bar then Color.LIGHT_RED     else   Color.GRAY);
+#AssignPriceColor(if breakout == 1 then Color.LIGHT_GREEN   else 
+#                 if breakout == 0 then Color.LIGHT_RED     else   Color.GRAY);
+
+#AddLabel(yes, fup);
+#AddLAbel(yes, breakout);
+# Plot the line connecting trigger points
+plot TriggerLine = if isTriggered and triggerPrice == triggerPrice[1] then triggerPrice else Double.NaN;
+TriggerLine.SetDefaultColor(Color.WHITE);
+TriggerLine.SetLineWeight(2);
+
+
+plot xcx = if fup >= 0 then fup else Double.NaN;
+xcx.SetPaintingStrategy(PaintingStrategy.VALUES_ABOVE);
+xcx.SetDefaultColor(Color.RED);
+
+#plot xc1x = if breakout >= 0 then breakout else Double.NaN;
+#xc1x.SetPaintingStrategy(PaintingStrategy.VALUES_ABOVE);
+#xc1x.SetDefaultColor(Color.YELLOW);
+
+
+#def avgpric = Average(open, 5);
+#plot avgplot = avgpric;
+
+#AddLabel(SYMBOLx, if avgpric > avgpric[1] then "UTRND" else 
+#                  if avgpric < avgpric[1] then "DTRND" else "NOTRND",
+#                  if avgpric > avgpric[1] then Color.GREEN else 
+#                  if avgpric < avgpric[1] then Color.RED else 
+#                  Color.WHITE);
+
+#def up1 = if avgpric > avgpric[1] then 1.5 else 0;
+#def up2 = if FastUP then 3 else 0;
+#def up3 = if CurrentStatusExpectation == 1 or expected_position == 1 then 1.5 #else 0;
+
+#def upfinal = up1 + up2 + up3;
+
+#def dn1 = if avgpric < avgpric[1] then 1.5 else 0;
+#def dn2 = if FastDN then 3 else 0;
+#def dn3 = if CurrentStatusExpectation == 0 or expected_position == 0 then 1.5 #else 0;
+
+#def dnfinal = dn1 + dn2 + dn3;
+
+#AddLabel(SYMBOLx, 
+#                  if upfinal >= 3 then "UPTREND" else 
+#                  if dnfinal >= 3 then "DNTREND" else
+#                  "WAITING",
+#                  if upfinal >= 3 then Color.Green else 
+#                  if dnfinal >= 3 then Color.Red else
+#                  Color.White);
