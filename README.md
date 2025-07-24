@@ -44,9 +44,9 @@ Backtest speed: 3x
 
 | June        | Profits | Trade Type   |   | Mar        | Profits | Trade Type   |   | Apr        | Profits | Trade Type   |   |
 | ---------- |:-------:|:------------:|:-:|:----------:|:-------:|:------------:|:-:|:----------:|:-------:|:------------:| -:|
--| 6/1/25     | +$0  |  Full Day    |   | 7/1/23     | +$2000   |  Full Day    |   | 4/3/23     | $0      |  Full Day    |   |
--| 6/2/25     | +$1200  |  Full Day    |   | 7/2/23     | +$1500  |  Full Day    |   | 4/4/23     | $0      |  Full Day    |   |
--| 6/3/25     | +$2640  |  Full Day    |   | 7/3/23     | -$1000  |  Partial Day |   | 4/5/23     | $0      |  Full Day    |   |
+**| 6/1/25     | +$0  |  Full Day    |**   | 7/1/23     | +$2000   |  Full Day    |   | 4/3/23     | $0      |  Full Day    |   |
+| 6/2/25     | +$1200  |  Full Day    |   | 7/2/23     | +$1500  |  Full Day    |   | 4/4/23     | $0      |  Full Day    |   |
+| 6/3/25     | +$2640  |  Full Day    |   | 7/3/23     | -$1000  |  Partial Day |   | 4/5/23     | $0      |  Full Day    |   |
 | 6/4/25     | -$240   |  Full Day    |   | 7/6/23     | +$560   |  Full Day    |   | 4/6/23     | $0      |  Full Day    |   |
 | 6/5/25     | +$4500  |  Full Day    |   | 7/7/23     | +$2000+   |  Full Day    |   | 4/7/23     | $0      |  Full Day    |   |
 | 6/6/25     | -$640   |  Full Day    |   | 7/8/23     | -$1000  |  Full Day    |   | 4/10/23    | $0      |  Full Day    |   |
