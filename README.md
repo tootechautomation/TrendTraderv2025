@@ -42,7 +42,7 @@ Backtest speed: 3x
 # Results From Backtesting
 
 
-| June        | Profits | Trade Type   |   | Mar        | Profits | Trade Type   |   | Apr        | Profits | Trade Type   |   |
+| June        | P/L | Trade Type   |   | Mar        | Profits | Trade Type   |   | Apr        | Profits | Trade Type   |   |
 | ---------- |:-------:|:------------:|:-:|:----------:|:-------:|:------------:|:-:|:----------:|:-------:|:------------:| -:|
 | 6/1/25     | +$0  |  Full Day    |   | 7/1/23     | +$2000   |  Full Day    |   | 4/3/23     | $0      |  Full Day    |   |
 | 6/2/25     | +$1200  |  Full Day    |   | 7/2/23     | +$1500  |  Full Day    |   | 4/4/23     | $0      |  Full Day    |   |
