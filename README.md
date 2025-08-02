@@ -28,6 +28,7 @@ Trade with confidence!
 
 #### <a href="https://rumble.com/v2rqpss-trendtrader-automated-trading-demo.html">Getting Started Demo</a>
 
+#### REQUIRES TESSERACT-OCR (sudo apt install tesseract-ocr -y)
 
 # Configuration
 
