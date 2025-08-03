@@ -448,13 +448,15 @@ def checkProfitTaking():
 
 def nextTradingDay():
     global config_vars
+    global TRADE_DAY_START
+    global TRADE_MONTH
     #global day
     # Get current date to set year and month
     current_date = datetime.now()
     year = current_date.year
-    month = int(config_vars["TRADE_MONTH"])
+    month = int(TRADE_MONTH)
 
-    checkpoint = int(config_vars["TRADE_DAY_START"]) + 1
+    checkpoint = int(TRADE_DAY_START) + 1
    
     for i in range(checkpoint,32):
         # Create date object for the given day in current month/year
@@ -468,7 +470,7 @@ def nextTradingDay():
             day = i       
             actionPath["time_refresh"]["region"].click(actionPath["time_refresh"]["path"],0)
             time.sleep(1)
-            click(config_vars["TRADE_DAY_START"])
+            click(tradingDay[TRADE_DAY_START])
             click(tradingDay["timesection"])
             type("a", KeyModifier.CTRL)
             paste(config_vars["DAY_START_TIME"])
@@ -476,7 +478,6 @@ def nextTradingDay():
             click(Mouse.at())
            # actionPath["go_refresh"]["region"].click(actionPath["go_refresh"]["path"],0)            
             time.sleep(2)
-            config_vars["TRADE_DAY_START"] = day
             return day
     return
 
