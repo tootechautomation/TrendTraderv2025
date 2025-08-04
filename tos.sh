@@ -6,7 +6,7 @@ sudo rm -rf /tmp/+~JF*
 sudo rm -rf /tmp/Screenshot*
 sudo rm -rf /tmp/.org.chrom*
 
-while $true; do java -jar /home/$(whoami)/Desktop/TrendTrader2025/TrendTraderv2025.jar
+while $true; do java -jar /home/$(whoami)/Documents/TrendTrader2025/TrendTraderv2025.jar;done
 
 
 
