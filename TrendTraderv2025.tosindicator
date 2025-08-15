@@ -1,24 +1,48 @@
+#declare lower;
 input SYMBOL = "SOXL";
 def SYMBOLx = if GetSymbol() == SYMBOL then 1 else 0;
 
 #declare lower;
 input length = 200; # 50
 input TLength1 = 50;
+input bull_profit = 500;
+input bear_stop = -150;
+def wick_length = 0.1;
+def wick_move_body_length = 0.25;
+
+def gap_up = open - high[1] > 0.1;
+def gap_dn = low[1] - open > 0.1;
+def long_wick_movement = if gap_up and open - low > .1 and (high - open * 2.5) <= (high - low) and close > open then 1 else 0;
+def short_wick_movement = if gap_dn and high - open > .1 and (open - low * 2.5) <= (high - low) and close < open then 1 else 0;
 
 def Inertia1 = InertiaAll(close, length);
 def Inert1   = InertiaAll(close, TLength1);
 #AddLabel(yes, Inertia1x);
 
-def TL_Bull1 = Inertia1 - (HighestAll(AbsValue(Inertia1 - close)) * 0.8) + (TL_Bull1[1] * 0.0025);
-def TL_Bear1 = Inertia1 + (HighestAll(AbsValue(Inertia1 - close)) * 0.8) - (TL_Bear1[1] * 0.0025);
+def TL_Bullx1 = Inertia1 - (HighestAll(AbsValue(Inertia1 - close)) * 0.8); #+ (TL_Bull1[1] * 0.0025);
+def TL_Bearx1 = Inertia1 + (HighestAll(AbsValue(Inertia1 - close)) * 0.8); #- (TL_Bear1[1] * 0.0025);
+
+def TL_Bull1 = if IsNaN((TL_Bullx1[1] * 0.0025)) then TL_Bullx1[1] else if !IsNaN((TL_Bullx1[1] * 0.0025)) then (TL_Bullx1 + (TL_Bullx1[1] * 0.0025)) else TL_Bull1[1];
+
+def TL_Bear1 = if IsNaN((TL_Bearx1[1] * 0.0025)) then TL_Bearx1[1] else if !IsNaN((TL_Bearx1[1] * 0.0025)) then (TL_Bearx1 + (TL_Bearx1[1] * 0.0025)) else TL_Bear1[1];
+
+
 def slope1a = TL_Bull1 > TL_Bull1[1];
 def slope1b = TL_Bear1 > TL_Bear1[1];
 
-def TL_Bu1 = Inert1 - (HighestAll(AbsValue(Inert1 - close)) * 0.8);
-def TL_Be1 = Inert1 + (HighestAll(AbsValue(Inert1 - close)) * 0.8);
-def slop1a = TL_Bu1 > TL_Bu1[1];
-def slop1b = TL_Be1 > TL_Be1[1];
+def TL_Bu1x = Inert1 - (HighestAll(AbsValue(Inert1 - close)) * 0.8);
+def TL_Be1x = Inert1 + (HighestAll(AbsValue(Inert1 - close)) * 0.8);
+def slop1a = TL_Bu1x > TL_Bu1x[1];
+def slop1b = TL_Be1x > TL_Be1x[1];
 
+def smalltobiglong = if TL_Bu1x > TL_Bu1x[1] and TL_Bear1 < TL_Be1x and TL_Bear1 > TL_Bu1x then 1 else if TL_Be1x >= TL_Bear1 then 1 else 0;
+def smalltobigshort = if TL_Be1x < TL_Be1x[1] and TL_Bull1 > TL_Bu1x and TL_Bull1 < TL_Be1x then 1 else if
+TL_Bu1x <= TL_Bull1 then 1 else 0;
+
+def TL_Bu1 = if !smalltobiglong and !smalltobigshort then TL_Bu1x else 0;
+def TL_Be1 = if !smalltobiglong and !smalltobigshort then TL_Be1x else 0;
+
+def midtrendsmall = if TL_Be1 - TL_Bu1 < 0.25 then 1 else 0;  # 0.25
 
 plot TrendLine1a = if slope1a > 0 then TL_Bull1 else TL_Bear1;
 TrendLine1a.SetStyle(Curve.LONG_DASH);
@@ -31,13 +55,13 @@ TrendLine1b.SetLineWeight(1);
 TrendLine1b.AssignValueColor(if slope1b and IsAscending(close, 10) then Color.GREEN else if slope1b then Color.GREEN else if !IsAscending(close, 10) then Color.GREEN else Color.GREEN);
 
 plot TLine1a = if slop1a > 0 then TL_Bu1 else TL_Be1;
-TLine1a.SetStyle(curve.long_dash);
+TLine1a.SetStyle(Curve.LONG_DASH);
 TLine1a.SetLineWeight(1);
-TLine1a.assignvaluecolor(if slop1a and IsAscending(close, 10) then Color.CYAN else if slop1a then color.CYAN else if !IsAscending(close, 10)then color.CYAN else color.CYAN);
+TLine1a.AssignValueColor(if slop1a and IsAscending(close, 10) then Color.CYAN else if slop1a then Color.CYAN else if !IsAscending(close, 10) then Color.CYAN else Color.CYAN);
 plot TLine1b = if slop1b > 0 then TL_Be1 else TL_Bu1;
-TLine1b.SetStyle(curve.long_dash);
+TLine1b.SetStyle(Curve.LONG_DASH);
 TLine1b.SetLineWeight(1);
-TLine1b.assignvaluecolor(if slop1b and IsAscending(close, 10) then color.ORANGE else if slop1b then color.ORANGE else if !IsAscending(close, 10)then color.ORANGE else color.ORANGE);
+TLine1b.AssignValueColor(if slop1b and IsAscending(close, 10) then Color.ORANGE else if slop1b then Color.ORANGE else if !IsAscending(close, 10) then Color.ORANGE else Color.ORANGE);
 
 def percent_adj = 0.0025;  # 0.0025
 
@@ -45,18 +69,44 @@ def FastUP =  (low[1] <= TL_Bull1[1] and
                 low[1] <= (TL_Bull1[1] - ( TL_Bull1[1] * percent_adj)) and # high[1] > TL_Bull1[1]) and
                (low < TL_Bull1 and
                 close > open and high > TL_Bull1));
-def FastUP1 = (low[1] <= TL_Bu1[1] and
+def FastUP1 = close[1] < open[1] and low[1] < low and open[1] > low[1] and open == low and low - TL_Bull1 <= 0.05 and high > open[1];
+def FastUP2 = !midtrendsmall and (low[1] <= TL_Bu1[1] and
                 low[1] <= (TL_Bu1[1] - ( TL_Bu1[1] * percent_adj)) and # high[1] > TL_Bull1[1]) and
                (low < TL_Bu1 and
                 close > open and high > TL_Bu1));
 
+def FastUP3 =  close > open && close[1] < open[1] && close[1] <= TL_Bull1[1] && low <= (TL_Bull1[1] - ( TL_Bull1[1] * percent_adj)) and high > TL_Bull1;
+
+#def FastUP3_5 =  close >= open && (open[1] - low[1]) / 2  < high - open &&
+#               #close[1] > open[1] &&
+#                low[1] <= (TL_Bull1[1] - ( TL_Bull1[1] * percent_adj)) and high > TL_Bull1;
+
+
+def FastUP4 =  !midtrendsmall and close > open && close[1] < open[1] && close[1] <= TL_Bu1[1] && low <= TL_Bu1 - (TL_Bu1 * percent_adj) and high > TL_Bu1;
+
+def FastUP5 = !midtrendsmall and open[1] - close[1] >= 0.10 and close - open >= 0.10 and close[1] < open[1] and low[1] < low and open[1] > low[1] and open == low and low - TL_Bu1 <= 0.05 and high > open[1];
+
+
 def FastDN =  ( high[1] >= TL_Bear1[1] and high[1] >= (TL_Bear1[1] + (TL_Bear1[1] * percent_adj)) and #low[1] < TL_Bear1[1] 
               (high > TL_Bear1 and
-                   close < open and low < TL_Bear1));
-
-def FastDN1 =  ( high[1] >= TL_Be1[1] and high[1] >= (TL_Be1[1] + (TL_Be1[1] * percent_adj)) and #low[1] < TL_Bear1[1] 
+                   close <= open and low < TL_Bear1));
+def FastDN1 = close[1] > open[1] and
+ high[1] > high and open[1] < high[1] and open == high and TL_Bear1 - high <= 0.05 and low < open[1];
+def FastDN2 =  !midtrendsmall and  ( high[1] >= TL_Be1[1] and high[1] >= (TL_Be1[1] + (TL_Be1[1] * percent_adj)) and #low[1] < TL_Bear1[1] 
               (high > TL_Be1 and
                    close < open and low < TL_Be1));
+def FastDN3 =  close <= open && 
+               #close[1] > open[1] &&
+                close[1] >= TL_Bear1[1] && high >= (TL_Bear1[1] - ( TL_Bear1[1] * percent_adj)) and low < TL_Bear1;
+#def FastDN3_5 =  close <= open && (high[1] + open[1]) / 2  > open - low &&
+#               #close[1] > open[1] &&
+#                high[1] >= (TL_Bear1[1] + ( TL_Bear1[1] * percent_adj)) and low < TL_Bear1;
+
+def FastDN4 =  !midtrendsmall and close < open && close[1] > open[1] && close[1] >= TL_Be1[1] && high >= (TL_Be1[1] - ( TL_Be1[1] * percent_adj)) and low < TL_Be1;
+
+def FastDN5 = !midtrendsmall and close[1] - open[1] >= 0.10 and open - close >= 0.10 and close[1] > open[1] and high[1] > high and open[1] < high[1] and close[1] == open and TL_Be1 - high <= 0.05 and low < open[1];
+
+
 
 #AddLabel(yes,  high[1] >= TL_Bear1[1]);
 #AddLabel(yes, high[1] > (TL_Bear1[1] + (TL_Bear1[1] * percent_adj)));
@@ -68,51 +118,62 @@ def FastDN1 =  ( high[1] >= TL_Be1[1] and high[1] >= (TL_Be1[1] + (TL_Be1[1] * p
 #AddLabel(yes, low < TL_Bull1);
 #AddLabel(yes,  close > open and high > TL_Bull1);
 
-#AddLabel(yes,  round(TL_Bear1 ,2));
-#AddLabel(yes, round(TL_Bull1, 2));
-
-
-
-
-
-
 def fup = if FastUP == 1 or
-             FastUP1 == 1 
+             FastUP1 == 1 or
+             FastUP2 == 1 or
+             FastUP3 == 1 or
+            # FastUP3_5 == 1 or
+             FastUP4 == 1 or
+             FastUP5 == 1
              then 1 else 
           if FastDN == 1 or
-             FastDN1 == 1 
+             FastDN1 == 1 or
+             FastDN2 == 1 or
+             FastDN3 == 1 or
+           #  FastDN3_5 == 1 or
+             FastDN4 == 1 or
+             FastDN5 == 1
              then 0 else -1;
 
 plot tex = AbsValue( TL_Bear1 + ( TL_Bear1 * percent_adj));
-tex.SetPaintingStrategy(PaintingStrategy.POINTS);
+#tex.SetPaintingStrategy(PaintingStrategy.POINTS);
 tex.SetDefaultColor(Color.CYAN);
 plot tex1 = AbsValue(TL_Bull1 - (TL_Bull1 * percent_adj));
-tex1.SetPaintingStrategy(PaintingStrategy.POINTS);
+#tex1.SetPaintingStrategy(PaintingStrategy.POINTS);
 tex1.SetDefaultColor(Color.CYAN);
 
 plot stex = AbsValue( TL_Be1 + ( TL_Be1 * percent_adj));
-tex.SetPaintingStrategy(PaintingStrategy.POINTS);
+#tex.SetPaintingStrategy(PaintingStrategy.POINTS);
 tex.SetDefaultColor(Color.YELLOW);
 plot stex1 = AbsValue(TL_Bu1 - (TL_Bu1 * percent_adj));
-tex1.SetPaintingStrategy(PaintingStrategy.POINTS);
+#tex1.SetPaintingStrategy(PaintingStrategy.POINTS);
 tex1.SetDefaultColor(Color.YELLOW);
 
 #plot fupx = if fup != -1 then fup else Double.NaN;
 #fupx.SetPaintingStrategy(PaintingStrategy.VALUES_BELOW);
 
 # Store the price at the trigger point
-def triggerPrice = if fup >= 0 then open else triggerPrice[1];
-def triggerPriceLow = if fup == 1 then low else triggerPriceLow[1];
-def triggerPriceHigh = if fup == 0 then high else triggerPriceHigh[1];
-def triggerAction = if fup == 1 then 1 else if fup == 0 then 0 else triggerAction[1];
-# Track whether we are in a triggered state
-def isTriggered = if fup >= 0 then 1 else if isTriggered[1] then 1 else 0;
 
+#def triggerPrice = if fup >= 0 then 1 else triggerPrice[1];
+def triggerPriceLow = if !IsNaN(fup) and fup == 1 then low else 0;
+def triggerPriceHigh = if !IsNaN(fup) and fup == 0 then high else 0;
+def triggerAction = if  !IsNaN(fup) and fup == 1 then 1 else if !IsNaN(fup) and fup == 0 then 0 else -1;
+# Track whether we are in a triggered state
+def isTriggered = if !IsNaN(fup) and fup >= 0 then 1 else 0;
+
+plot TriggerLine = if triggerPriceHigh != 0 and triggerPriceLow != 0 and isTriggered and triggerPriceLow == triggerPriceLow[1] then triggerPriceLow else if triggerPriceHigh == triggerPriceHigh[1] then triggerPriceHigh else Double.NaN;
+TriggerLine.SetDefaultColor(Color.WHITE);
+TriggerLine.SetLineWeight(2);
 
 def marketOpenTime = 0930; # 9:30 AM ET 
 def marketCloseTime = 1600; # 4:00 PM ET
 
 def isMarketOpen = if SecondsFromTime(marketOpenTime) >= 0 and SecondsTillTime(marketCloseTime) > 0 then 1 else 0;
+
+def breakout_line = if isTriggered and triggerAction == 1 and low < triggerPriceLow and low[1] < triggerPriceLow[1] then 0 else 
+              if isTriggered and triggerAction == 0 and low < triggerPriceHigh and low[1] < triggerPriceHigh[1] then 1 else -1;
+
+
 
 #def CurrentStatusExpectation = if fup == 1 && isMarketOpen then 1 else
 #                               if fup == 0 && isMarketOpen then 0 else #CurrentStatusExpectation[1];
@@ -126,28 +187,248 @@ def isMarketOpen = if SecondsFromTime(marketOpenTime) >= 0 and SecondsTillTime(m
 
 
 
+def openPL = if GetOpenPL() == 0 then -1 else if GetOpenPL() != 0 && !IsNaN(GetOpenPL()) then GetOpenPL() else -1 ;
+
+def t1 = if IsNaN(openPL) then -1 else if openPL != 0 then (openPL * 0.100) else -1;
+
+#######################################################################################################
+# User Inputs
+def EciLength =  14; #hint EciLength: Length for calculations.
+def AvgLength = 10; #hint AvgLength: Length for smoothing.
+def AvgType = AverageType.SIMPLE; #hint AvgType: Average Type
+def MeanValue = HL2; #hint MeanValue: Point of origen.
+def DisplayPoints = yes; #hint DisplayPoints: No Points.
+def OnExpansion = yes; #hint OnExpansion: Line extensions.
+
+# Variables
+script g {
+    input data = close;
+    def w = (2 * Double.Pi / 8);
+    def beta = (1 - Cos(w)) / (Power(1.414, 2.0 / 4) - 1 );
+    def alpha = (-beta + Sqrt(beta * beta + 2 * beta));
+    def G = Power(alpha, 4) * data +
+                 4 * (1 – alpha) * G[1] – 6 * Power( 1 - alpha, 2 ) * G[2] +
+                 4 * Power( 1 - alpha, 3 ) * G[3] - Power( 1 - alpha, 4 ) * G[4];
+    plot Line = G;
+}
+def o = g(data = open);
+def h = g(data = high);
+def l = g(data = low);
+def c = g(data = close);
+def bar = BarNumber();
+def HMax = Highest(Max(h, c[1]), EciLength);
+def LMax = Lowest(Min(l, c[1]), EciLength);
+def TR = HMax - LMax;
+def ECI = Round((Log(Sum(TrueRange(h, c, l), EciLength) / TR) /
+         Log(EciLength)) / TickSize(), 0) * TickSize();
+def Avg = MovingAverage(AverageType = AvgType, ECI, AvgLength);
+def S1 = if ECI crosses above Avg
+         then MeanValue
+         else S1[1];
+def S = ECI > Avg;
+def SBars = if ECI > Avg
+            then bar
+            else Double.NaN;
+def StartBar = if ECI crosses above Avg
+               then bar
+               else StartBar[1];
+def LastSBar = if ECI crosses below Avg
+               then bar
+               else LastSBar[1];
+def PP = if ECI crosses above Avg
+         then MeanValue
+         else PP[1];
+def Mean_Limit = if bar != StartBar
+                 then bar - StartBar
+                 else if bar == StartBar
+                      then Double.NaN
+                      else Mean_Limit[1];
+def SHigh = if ECI crosses above Avg
+            then h
+            else SHigh[1];
+def SHighBar = if S and
+                  h == SHigh
+               then bar
+               else SHighBar[1];
+def SHigh_Limit = if bar == StartBar
+                  then Double.NaN
+                  else if bar > StartBar
+                       then bar - SHighBar
+                       else SHigh_Limit[1];
+def SLow = if ECI crosses above Avg
+           then l
+           else SLow[1];
+def SLowBar = if S and
+                  l == SLow
+              then bar
+              else SLowBar[1];
+def SLow_Limit = if bar == StartBar
+                 then Double.NaN
+                 else if bar > StartBar
+                      then bar - SLowBar
+                      else SLow_Limit[1];
+# Internal Script Reference
+script LinePlot {
+    input LineLimit = 0;
+    input OnExpansion = yes;
+    input data = close;
+    input bar = 0;
+    def ThisBar = HighestAll(bar);
+    def cLine = if bar == ThisBar
+                then data
+                else Double.NaN;
+    def cond1 = CompoundValue(1, if IsNaN(data)
+                                 then cond1[1]
+                                 else data, data);
+    plot P = if ThisBar - LineLimit <= bar
+             then HighestAll(cLine)
+             else Double.NaN;
+    plot ExpLine = if OnExpansion and
+                     IsNaN(data[-1])
+                   then cond1
+                   else Double.NaN;
+}
+# Plots
+plot SD_Pivot = LinePlot(data = PP, LineLimit = Mean_Limit, OnExpansion = OnExpansion, bar = StartBar).P;
+plot SD_R1 = LinePlot(data = SHigh, LineLimit = SHigh_Limit, OnExpansion = OnExpansion, bar = SHighBar).P;
+SD_R1.SetDefaultColor(Color.LIGHT_GREEN);
+plot SD_S1 = LinePlot(data = SLow, LineLimit = SLow_Limit, OnExpansion = OnExpansion, bar = SLowBar).P;
+SD_S1.SetDefaultColor(Color.LIGHT_RED);
+plot SPlot = if S
+             then S1 #l - (2 * TickSize())
+             else Double.NaN;
+SPlot.SetHiding(!DisplayPoints);
+SPlot.SetPaintingStrategy(PaintingStrategy.POINTS);
+SPlot.SetLineWeight(1);
+SPlot.SetDefaultColor(Color.YELLOW);
+
+def SD_R1_X = if !IsNaN(SD_R1) then SD_R1 else 0;
+def SD_S1_X = if !IsNaN(SD_S1) then SD_S1 else 0;
+
+AddCloud(SD_Pivot, SD_R1, Color.ORANGE);
+AddCloud(SD_S1, SD_Pivot, Color.ORANGE);
 
 
+def x1 = if SD_S1_X[1] != 0 then SD_S1_X[1] else if  SD_S1_X[2] != 0 then  SD_S1_X[2] else open[1];
+def x2 = if SD_R1_X[1] != 0 then SD_R1_X[1] else if  SD_R1_X[2] != 0 then  SD_R1_X[2] else open[1];
 
 
+##### REVISIT THIS!!!!!
+#addlabel(yes, x1);
+#addlabel(yes, x2);
+#addlabel(yes, average(x1,3));
+#addlabel(yes, average(x2,3));
+#addlabel(yes, average(close[1],3));
+#addlabel(yes, Average(open[1], 3));
+def full_house = if (open[2] < x2[1] and open[2] > x1[1] and close[2] < x2[1] and close[2] > x1[1]) and
+                    (open[1] < x2 and open[1] > x1 and close[1] < x2 and close[1] > x1) or 
+                    (open[1] < x2 and open[1] > x1 and close[1] < x2 and close[1] > x1)
+                    
+                    #Average(open, 2)  > Average(x1,2) and
+                    #Average(close, 2) > Average(x1,2) and
+                    #Average(open, 2)  < Average(x2,2) and 
+                    #Average(close, 2) < Average(x2,2) then 1 else 0; # and 
+                    #(!IsNaN(S[2]) and S[2]) and 
+                    #(!IsNaN(S[1]) and S[1]) 
+                    then 1 else 0;
+#######################################################################################################
+#######################################################################################################
+def lastBar = if BarNumber() == 156 then 1 else 0;
+def firstBar = if BarNumber() == 79 then 1 else 0;
+#######################################################################################################
+#######################################################################################################
+def long_wick_reverse = if close[1] < open[1] and close[1] - low[1] >= wick_length and high[1] - low[1] >= wick_move_body_length and high > ((open[1] + close[1]) / 2) then 1 else 0;
+
+def short_wick_reverse =  if close[1] > open[1] and high[1] - close[1] >= wick_length and high[1] - low[1] >= wick_move_body_length and low < ((open[1] + close[1]) / 2) then 1 else 0;
+#######################################################################################################
+#######################################################################################################
+def short_fake = if high[2] > TL_Bear1[2] and 
+                   # low[1] < low[2] and 
+                   # close[1] < open[1] and
+                    high > high[1] and 
+                    high > high[2] and 
+                    close > open then 1 else 0;
+
+def long_fake = if low[2] < TL_Bull1[2] and
+                 #  high[1] > high[2] and 
+                  # close[1] > open[1] and
+                   low < low[1] and 
+                   low < low[2] and 
+                   close < open then 1 else 0;
+
+def small_short = if high[2] >= TL_Be1[2] and 
+                    (high[1] - open[1]) > ((open[1] - close[1] ) * 3) and
+                     close[1] < open[1] and
+                     low < TL_Bu1 then 1 else 0;
+
+def small_long = if low[2] <= TL_Bu1[2] and 
+                   (open[1] - low[1]) > ((close[1] - open[1] ) * 3) and 
+                    close[1] > open[1] and
+                    high > TL_Be1 then 1 else 0;
+
+def breakout = if !IsNaN(triggerAction) and triggerAction == 1  and 
+                  !IsNaN(triggerPriceLow) and !IsNaN(triggerPriceLow[1]) and !IsNaN(triggerPriceLow[2]) and
+                  close[2] < open[2] and low[2] < triggerPriceLow[2] and
+                  close[1] < open[1] and open[1] < triggerPriceLow[1]  and close[1] < triggerPriceLow[1] and open < triggerPriceLow and low < low[1] then 0 else
+               if  !IsNaN(triggerAction) and triggerAction == 0 and
+!IsNaN(triggerPriceHigh) and !IsNaN(triggerPriceHigh[1]) and !IsNaN(triggerPriceHigh[2]) and
+                   close[2] > open[2] and high[2] > triggerPriceHigh[2] and
+                  close[1] > open[1] and open[1] > triggerPriceHigh[1]  and close[1] > triggerPriceHigh[1] and open > triggerPriceHigh and high > high[1] then 1 else -1;
 
 
+def long_position =  if  isMarketOpen && fup == 1 then 1 else 
+                     if isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close > open && high > SD_R1_X[1] then 1 else
+                     if close[1] > SD_S1_X[1] && open > SD_S1_X[1] && open < ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
+                    high > SD_R1_X[1] && close > open
+                    then 1 else
+                     if close[1] < open[1] and high[1] - open[1] > ((close[1] - low[1]) * 2) and low < TL_Bu1 and S[1] and high > SD_R1_X[1] and high > open[1] then 1 else  
+                     if small_long == 1 then 1 else
+                     if short_fake == 1 then 1 else            
+                     if long_wick_reverse == 1 then 1 else
+                     if long_wick_movement == 1 then 1 else
+                     if !IsNaN(breakout) and breakout == 1 then 1 else
+                     if breakout_line == 1 then 1 else -1;
+
+def short_position = if isMarketOpen && fup == 0 then 0 else
+                     if isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close < open && low < SD_S1_X[1] then 0 else
+                     if close[1] < SD_R1_X[1] && open < SD_R1_X[1] && open > ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
+                    low < SD_S1_X[1] && close < open
+                     then 0 else
+                     if close[1] > open[1] and open[1] - low[1] > ((high[1] - close[1]) * 2) and high > TL_Be1 and S[1] and low < SD_S1_X[1] and low < open[1] then 1 else
+                     if small_short == 1 then 0 else 
+                     if long_fake == 1 then 0 else  
+                     if short_wick_reverse == 1 then 0 else
+                     if short_wick_movement == 1 then 0 else 
+                     if !IsNaN(breakout) and breakout == 1 then 0 else
+                     if breakout_line == 1 then 0 else -1;
+
+def flat_position =  if isMarketOpen && bear_stop < 0 && t1 <= (bear_stop * 0.100) then 0 else
+                     if isMarketOpen && bull_profit > 0 && t1 >= (bull_profit * 0.100) then 1 else -1;
+
+plot fl = TL_Bull1 + 0.25;
+fl.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
+plot fxl = TL_Bear1 - 0.25;
+fxl.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
 
 
+#addlabel(yes, flat_position);
+#addlabel(yes, lastBar);
+#addlabel(yes, firstBar);
+#addlabel(yes, long_position);
+#addlabel(yes, short_position);
+#addlabel(yes, isMarketOpen);
 
 
-
-
-
-
-
-
-
-AddLabel(SYMBOLx, if fup == 1 && isMarketOpen then "UPTREND" else 
-                  if fup == 0 && isMarketOpen then "DNTREND" else
-                  if !isMarketOpen then "MCLOSED" else "NBTREND",
-                  if fup == 1 && isMarketOpen then Color.GREEN else 
-                  if fup == 0 && isMarketOpen then Color.RED else              if !isMarketOpen then Color.RED else Color.WHITE);
+AddLabel(SYMBOLx,   if flat_position >= 0 then "CLSEPOS" else # "FLATTEN" else
+                    if lastBar then "CLSEPOS" else
+                    if !firstBar and long_position == 1 then "UPTREND" else
+                    if !firstBar and short_position == 0 then "DNTREND" else
+                    if !isMarketOpen then "MCLOSED" else "NBTREND",
+                    if flat_position >= 0 then Color.ORANGE else
+                    if lastBar then Color.ORANGE else
+                    if !firstBar and long_position == 1 then Color.GREEN else
+                    if !firstBar and short_position == 0 then Color.RED else           
+                    if !isMarketOpen then Color.RED else Color.WHITE);
 
 #AddLabel(SYMBOLx, "  ", Color.WHITE);
 #AddLabel(SYMBOLx, if expected_position == 1  then "LONG" else
@@ -160,15 +441,6 @@ AddLabel(SYMBOLx, if fup == 1 && isMarketOpen then "UPTREND" else
 
 
 
-#def breakout = if triggerAction==1   and 
-#                  low <= triggerPrice and 
-#                   close < open      and
-#                  low <= triggerPriceLow   then 0 else
-#               if triggerAction==0 and
-#                  high >= triggerPrice and
-#                  close > open and
-#                  high >= triggerPriceHigh then 1 else -1;
-
 #AddLabel(yes, if breakout == 1 then "UPTREND" else 
 #              if breakout == 0 then "DNTREND" else "xng",
 #              if breakout == 1 then Color.GREEN else 
@@ -177,22 +449,19 @@ AddLabel(SYMBOLx, if fup == 1 && isMarketOpen then "UPTREND" else
 
 def current_bar = if BarNumber() == Max(BarNumber(), 0) then 1 else 0;
 
-AssignPriceColor(if fup == 1 && close > open and current_bar then Color.LIGHT_GREEN   else 
-                 if fup == 0 && close < open and current_bar then Color.LIGHT_RED     else   Color.GRAY);
+AssignPriceColor(if long_position == 1 && close > open and current_bar then Color.LIGHT_GREEN   else 
+                 if short_position == 0 && close < open and current_bar then Color.LIGHT_RED     else   Color.GRAY);
 #AssignPriceColor(if breakout == 1 then Color.LIGHT_GREEN   else 
 #                 if breakout == 0 then Color.LIGHT_RED     else   Color.GRAY);
 
 #AddLabel(yes, fup);
 #AddLAbel(yes, breakout);
 # Plot the line connecting trigger points
-plot TriggerLine = if isTriggered and triggerPrice == triggerPrice[1] then triggerPrice else Double.NaN;
-TriggerLine.SetDefaultColor(Color.WHITE);
-TriggerLine.SetLineWeight(2);
 
 
-plot xcx = if fup >= 0 then fup else Double.NaN;
-xcx.SetPaintingStrategy(PaintingStrategy.VALUES_ABOVE);
-xcx.SetDefaultColor(Color.RED);
+#plot xcx = if fup >= 0 then fup else Double.NaN;
+#xcx.SetPaintingStrategy(PaintingStrategy.VALUES_ABOVE);
+#xcx.SetDefaultColor(Color.RED);
 
 #plot xc1x = if breakout >= 0 then breakout else Double.NaN;
 #xc1x.SetPaintingStrategy(PaintingStrategy.VALUES_ABOVE);
@@ -227,3 +496,19 @@ xcx.SetDefaultColor(Color.RED);
 #                  if upfinal >= 3 then Color.Green else 
 #                  if dnfinal >= 3 then Color.Red else
 #                  Color.White);
+#declare lower;
+
+
+#addlabel(yes,  isMarketOpen && fup == 0);
+#addlabel(yes,  isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close < open #&& low < SD_S1_X[1]);
+#addlabel(yes,  close[1] < SD_R1_X[1] && open < SD_R1_X[1] && open > ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
+#                    low < SD_S1_X[1] && close < open);
+#addlabel(yes,  close[1] > open[1] and open[1] - low[1] > ((high[1] - close[1]) * 2) and high > TL_Be1 #and S[1] and low < SD_S1_x[1] and low < open[1]);
+#addlabel(yes,  short_wick_reverse == 1);
+#addlabel(yes,  short_wick_movement == 1); 
+#addlabel(yes,  !IsNaN(breakout) and breakout == 1);
+#addlabel(yes,  breakout_line == 1);
+#addlabel(yes, triggerAction);
+#addlabel(yes, triggerPriceLow);
+#addlabel(yes, triggerPriceHigh);
+#addlabel(yes, fup);
