@@ -1,8 +1,13 @@
+def debug = 0;
 #declare lower;
 input SYMBOL = "SOXL";
 def SYMBOLx = if GetSymbol() == SYMBOL then 1 else 0;
 
 #declare lower;
+def currentDate = GetYYYYMMDD();
+def year = Floor(currentDate / 10000); 
+def month = Floor((currentDate % 10000) / 100); 
+def day = currentDate % 100;
 input length = 200; # 50
 input TLength1 = 50;
 input bull_profit = 500;
@@ -10,8 +15,9 @@ input bear_stop = -150;
 def wick_length = 0.1;
 def wick_move_body_length = 0.25;
 
-def gap_up = open - high[1] > 0.1;
-def gap_dn = low[1] - open > 0.1;
+def gap_up = high[1] - open > 0.1;
+def gap_dn = open - low[1]> 0.1;
+
 def long_wick_movement = if gap_up and open - low > .1 and (high - open * 2.5) <= (high - low) and close > open then 1 else 0;
 def short_wick_movement = if gap_dn and high - open > .1 and (open - low * 2.5) <= (high - low) and close < open then 1 else 0;
 
@@ -64,7 +70,6 @@ TLine1b.SetLineWeight(1);
 TLine1b.AssignValueColor(if slop1b and IsAscending(close, 10) then Color.ORANGE else if slop1b then Color.ORANGE else if !IsAscending(close, 10) then Color.ORANGE else Color.ORANGE);
 
 def percent_adj = 0.0025;  # 0.0025
-
 def FastUP =  (low[1] <= TL_Bull1[1] and
                 low[1] <= (TL_Bull1[1] - ( TL_Bull1[1] * percent_adj)) and # high[1] > TL_Bull1[1]) and
                (low < TL_Bull1 and
@@ -85,6 +90,25 @@ def FastUP3 =  close > open && close[1] < open[1] && close[1] <= TL_Bull1[1] && 
 def FastUP4 =  !midtrendsmall and close > open && close[1] < open[1] && close[1] <= TL_Bu1[1] && low <= TL_Bu1 - (TL_Bu1 * percent_adj) and high > TL_Bu1;
 
 def FastUP5 = !midtrendsmall and open[1] - close[1] >= 0.10 and close - open >= 0.10 and close[1] < open[1] and low[1] < low and open[1] > low[1] and open == low and low - TL_Bu1 <= 0.05 and high > open[1];
+def FastUP6 = #close[1] > open[1] 
+             high > high[1]
+             and (open[1] - low[1]) > 0.06
+           #  and ((open[1] - low[1]) * 5) == (high[1] - open[1])
+             and ((high[1] - open[1]) * 3) < 0.05
+            # and low[1] > TL_Bull1[1]
+             and high[1] < TL_Bu1[1]
+             and low[1] <= (TL_Bull1[1] + 0.005)
+             and close >= open and high > TL_Bull1;
+def FastUP7 = #close[1] > open[1] 
+             high > high[1]
+             and (open[1] - low[1]) > 0.06
+           #  and ((open[1] - low[1]) * 5) == (high[1] - open[1])
+             and ((high[1] - open[1]) * 3) < 0.05
+            # and low[1] > TL_Bull1[1]
+             and low[1] > TL_Bull1[1]
+             and low[1] <= (TL_Bu1[1] + 0.005)
+             and close >= open and high > TL_Bu1;
+
 
 
 def FastDN =  ( high[1] >= TL_Bear1[1] and high[1] >= (TL_Bear1[1] + (TL_Bear1[1] * percent_adj)) and #low[1] < TL_Bear1[1] 
@@ -105,8 +129,24 @@ def FastDN3 =  close <= open &&
 def FastDN4 =  !midtrendsmall and close < open && close[1] > open[1] && close[1] >= TL_Be1[1] && high >= (TL_Be1[1] - ( TL_Be1[1] * percent_adj)) and low < TL_Be1;
 
 def FastDN5 = !midtrendsmall and close[1] - open[1] >= 0.10 and open - close >= 0.10 and close[1] > open[1] and high[1] > high and open[1] < high[1] and close[1] == open and TL_Be1 - high <= 0.05 and low < open[1];
-
-
+def FastDN6 = close[1] < open[1] 
+             and low < low[1]
+             and (high[1] - open[1]) > 0.06
+           #  and ((open[1] - low[1]) * 5) == (high[1] - open[1])
+             and ((open[1] - low[1]) * 3) < 0.05
+            # and high[1] < TL_Bear1[1]
+             and low[1] > TL_Be1[1]
+             and high[1] >= (TL_Bear1[1] - 0.005)
+             and close <= open and low < TL_Bear1;
+def FastDN7 = close[1] < open[1] 
+             and low < low[1]
+             and (high[1] - open[1]) > 0.06
+           #  and ((open[1] - low[1]) * 5) == (high[1] - open[1])
+             and ((open[1] - low[1]) * 3) < 0.05
+            # and high[1] < TL_Bear1[1]
+             and high[1] < TL_Bear1[1]
+             and high[1] >= (TL_Be1[1] - 0.005)
+             and close <= open and low < TL_Be1;
 
 #AddLabel(yes,  high[1] >= TL_Bear1[1]);
 #AddLabel(yes, high[1] > (TL_Bear1[1] + (TL_Bear1[1] * percent_adj)));
@@ -124,7 +164,9 @@ def fup = if FastUP == 1 or
              FastUP3 == 1 or
             # FastUP3_5 == 1 or
              FastUP4 == 1 or
-             FastUP5 == 1
+             FastUP5 == 1 or
+             FastUP6 == 1 or
+             FastUP7 == 1
              then 1 else 
           if FastDN == 1 or
              FastDN1 == 1 or
@@ -132,8 +174,11 @@ def fup = if FastUP == 1 or
              FastDN3 == 1 or
            #  FastDN3_5 == 1 or
              FastDN4 == 1 or
-             FastDN5 == 1
+             FastDN5 == 1 or
+             FastDN6 == 1 or
+             FastDN7 == 1
              then 0 else -1;
+
 
 plot tex = AbsValue( TL_Bear1 + ( TL_Bear1 * percent_adj));
 #tex.SetPaintingStrategy(PaintingStrategy.POINTS);
@@ -171,7 +216,17 @@ def marketCloseTime = 1600; # 4:00 PM ET
 def isMarketOpen = if SecondsFromTime(marketOpenTime) >= 0 and SecondsTillTime(marketCloseTime) > 0 then 1 else 0;
 
 def breakout_line = if isTriggered and triggerAction == 1 and low < triggerPriceLow and low[1] < triggerPriceLow[1] then 0 else 
-              if isTriggered and triggerAction == 0 and low < triggerPriceHigh and low[1] < triggerPriceHigh[1] then 1 else -1;
+              if isTriggered and triggerAction == 0 and high > triggerPriceHigh and high[1] > triggerPriceHigh[1] then 1 else -1;
+
+
+def reso_long = if fup == 1 
+           #     and breakout_line != -1
+            #    and breakout_line != 0
+                then 1 else 0;
+def reso_short = if fup == 0
+              #   and breakout_line != -1  
+             #    and breakout_line != 1 
+                 then 1 else 0;
 
 
 
@@ -335,11 +390,12 @@ def full_house = if (open[2] < x2[1] and open[2] > x1[1] and close[2] < x2[1] an
 #######################################################################################################
 def lastBar = if BarNumber() == 156 then 1 else 0;
 def firstBar = if BarNumber() == 79 then 1 else 0;
+def BlastBar = if BarNumber() == 78 then 1 else 0;
 #######################################################################################################
 #######################################################################################################
-def long_wick_reverse = if close[1] < open[1] and close[1] - low[1] >= wick_length and high[1] - low[1] >= wick_move_body_length and high > ((open[1] + close[1]) / 2) then 1 else 0;
+def long_wick_reverse = if breakout_line[1] != 0 and  breakout_line[1] != -1 and close[1] < open[1] and close[1] - low[1] >= wick_length and high[1] - low[1] >= wick_move_body_length and high > ((open[1] + close[1]) / 2) then 1 else 0;
 
-def short_wick_reverse =  if close[1] > open[1] and high[1] - close[1] >= wick_length and high[1] - low[1] >= wick_move_body_length and low < ((open[1] + close[1]) / 2) then 1 else 0;
+def short_wick_reverse =  if breakout_line[1] != 1 and  breakout_line[1] != -1 and close[1] > open[1] and high[1] - close[1] >= wick_length and high[1] - low[1] >= wick_move_body_length and low < ((open[1] + close[1]) / 2) then 1 else 0;
 #######################################################################################################
 #######################################################################################################
 def short_fake = if high[2] > TL_Bear1[2] and 
@@ -366,6 +422,22 @@ def small_long = if low[2] <= TL_Bu1[2] and
                     close[1] > open[1] and
                     high > TL_Be1 then 1 else 0;
 
+plot fl = TL_Bull1 + 0.25;
+fl.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
+plot fxl = TL_Bear1 - 0.25;
+fxl.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
+
+# STAY LONG
+def mid_short_reverse_long_crossover = if fup == 0 
+                                       and stex crosses fxl 
+                                       or fup == 0 and stex[1] crosses fxl[1] 
+                                       then 1 else 0;
+# STAY SHORT
+def mid_long_reverse_short_crossover = if fup == 1
+                                       and stex1 crosses fl 
+                                       or fup == 1 and stex1[1] crosses fl[1] 
+                                       then 1 else 0;
+
 def breakout = if !IsNaN(triggerAction) and triggerAction == 1  and 
                   !IsNaN(triggerPriceLow) and !IsNaN(triggerPriceLow[1]) and !IsNaN(triggerPriceLow[2]) and
                   close[2] < open[2] and low[2] < triggerPriceLow[2] and
@@ -376,7 +448,8 @@ def breakout = if !IsNaN(triggerAction) and triggerAction == 1  and
                   close[1] > open[1] and open[1] > triggerPriceHigh[1]  and close[1] > triggerPriceHigh[1] and open > triggerPriceHigh and high > high[1] then 1 else -1;
 
 
-def long_position =  if  isMarketOpen && fup == 1 then 1 else 
+def long_position =  if mid_short_reverse_long_crossover == 1 then 1 else
+                     if  isMarketOpen && reso_long == 1 then 1 else 
                      if isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close > open && high > SD_R1_X[1] then 1 else
                      if close[1] > SD_S1_X[1] && open > SD_S1_X[1] && open < ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
                     high > SD_R1_X[1] && close > open
@@ -389,7 +462,8 @@ def long_position =  if  isMarketOpen && fup == 1 then 1 else
                      if !IsNaN(breakout) and breakout == 1 then 1 else
                      if breakout_line == 1 then 1 else -1;
 
-def short_position = if isMarketOpen && fup == 0 then 0 else
+def short_position = if mid_long_reverse_short_crossover == 1 then 0 else
+                     if isMarketOpen && reso_short == 1then 0 else
                      if isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close < open && low < SD_S1_X[1] then 0 else
                      if close[1] < SD_R1_X[1] && open < SD_R1_X[1] && open > ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
                     low < SD_S1_X[1] && close < open
@@ -405,11 +479,6 @@ def short_position = if isMarketOpen && fup == 0 then 0 else
 def flat_position =  if isMarketOpen && bear_stop < 0 && t1 <= (bear_stop * 0.100) then 0 else
                      if isMarketOpen && bull_profit > 0 && t1 >= (bull_profit * 0.100) then 1 else -1;
 
-plot fl = TL_Bull1 + 0.25;
-fl.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
-plot fxl = TL_Bear1 - 0.25;
-fxl.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
-
 
 #addlabel(yes, flat_position);
 #addlabel(yes, lastBar);
@@ -419,16 +488,18 @@ fxl.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
 #addlabel(yes, isMarketOpen);
 
 
-AddLabel(SYMBOLx,   if flat_position >= 0 then "CLSEPOS" else # "FLATTEN" else
+AddLabel(SYMBOLx,   if BlastBar == 1 then "NBTREND" else
+                    if flat_position >= 0 then "CLSEPOS" else # "FLATTEN" else
                     if lastBar then "CLSEPOS" else
                     if !firstBar and long_position == 1 then "UPTREND" else
                     if !firstBar and short_position == 0 then "DNTREND" else
-                    if !isMarketOpen then "MCLOSED" else "NBTREND",
+                    if !isMarketOpen then "NBTREND" else "NBTREND",
+                    if BlastBar == 1 then Color.WHITE else
                     if flat_position >= 0 then Color.ORANGE else
                     if lastBar then Color.ORANGE else
                     if !firstBar and long_position == 1 then Color.GREEN else
                     if !firstBar and short_position == 0 then Color.RED else           
-                    if !isMarketOpen then Color.RED else Color.WHITE);
+                    if !isMarketOpen then Color.WHITE else Color.WHITE);
 
 #AddLabel(SYMBOLx, "  ", Color.WHITE);
 #AddLabel(SYMBOLx, if expected_position == 1  then "LONG" else
@@ -512,3 +583,57 @@ AssignPriceColor(if long_position == 1 && close > open and current_bar then Colo
 #addlabel(yes, triggerPriceLow);
 #addlabel(yes, triggerPriceHigh);
 #addlabel(yes, fup);
+AddLabel(yes, "  ", color.white);
+AddLAbel(yes, "Rumble@FollowTheTrend", color.green);
+AddLabel(yes, "  ", color.white);
+addlabel(yes, year + ":" + month + ":" +day, Color.grAY);
+AddLabel(yes, "  ", color.white);
+
+addlabel(debug, reso_long == 1, color.green);
+addlabel(debug, isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close > open && high > SD_R1_X[1], color.green);
+addlabel(debug, close[1] > SD_S1_X[1] && open > SD_S1_X[1] && open < ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
+                    high > SD_R1_X[1] && close > open, color.green);
+addlabel(debug, close[1] < open[1] and high[1] - open[1] > ((close[1] - low[1]) * 2) and low < TL_Bu1 and S[1] and high > SD_R1_X[1] and high > open[1], color.green);
+addlabel(debug, small_long == 1, color.green);
+addlabel(debug, short_fake == 1, color.green);            
+addlabel(debug, isMarketOpen && fup == 1, color.green);
+addlabel(debug, isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close > open && high > SD_R1_X[1], color.green); 
+addlabel(debug, close[1] > SD_S1_X[1] && open > SD_S1_X[1] && open < ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
+                    high > SD_R1_X[1] && close > open, color.green);
+addlabel(debug, close[1] < open[1] and high[1] - open[1] > ((close[1] - low[1]) * 2) and low < TL_Bu1 and S[1] and high > SD_R1_X[1] and high > open[1], color.green);
+ADDLABEL(debug,  small_long == 1, color.green);
+addlabel(debug,  short_fake == 1 , color.green);          
+addlabel(debug, long_wick_reverse == 1, color.green);
+addlabel(debug, long_wick_movement == 1, color.green);
+addlabel(debug, !IsNaN(breakout) and breakout == 1, color.green);
+addlabel(debug, breakout_line == 1, color.green);
+
+addlabel(debug, reso_short == 1, color.red);
+addlabel(debug, isMarketOpen && full_house && open > SD_S1_X[1] and open < SD_R1_X[1] && close < open && low < SD_S1_X[1], color.red);
+addlabel(debug, close[1] < SD_R1_X[1] && open < SD_R1_X[1] && open > ((SD_R1_X[1] + SD_S1_X[1]) / 2) &&
+                    low < SD_S1_X[1] && close < open, color.red);
+addlabel(debug, close[1] > open[1] and open[1] - low[1] > ((high[1] - close[1]) * 2) and high > TL_Be1 and S[1] and low < SD_S1_X[1] and low < open[1], color.red);
+addlabel(debug, small_short == 1, color.red);
+addlabel(debug, long_fake == 1, color.red);
+addlabel(debug, short_wick_reverse == 1, color.red);
+addlabel(debug, short_wick_movement == 1, color.red); 
+addlabel(debug, !IsNaN(breakout) and breakout == 1, color.red);
+addlabel(debug, breakout_line == 1, color.red);
+
+addlabel(debug, fastup, color.cyan);
+addlabel(debug, fastup1, color.cyan);
+addlabel(debug, fastup2, color.cyan);
+addlabel(debug, fastup3, color.cyan);
+addlabel(debug, fastup4, color.cyan);
+addlabel(debug, fastup5, color.cyan);
+addlabel(debug, fastup6, color.cyan);
+addlabel(debug, fastup7, color.cyan);
+addlabel(debug, fastdn, color.yellow);
+addlabel(debug, fastdn1, color.yellow);
+addlabel(debug, fastdn2, color.yellow);
+addlabel(debug, fastdn3, color.yellow);
+addlabel(debug, fastdn4, color.yellow);
+addlabel(debug, fastdn5, color.yellow);
+addlabel(debug, fastdn6, color.yellow);
+addlabel(debug, fastdn7, color.yellow);
+
