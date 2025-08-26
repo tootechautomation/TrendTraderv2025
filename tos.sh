@@ -18,7 +18,7 @@ fi
 while $true; 
 do 
     export CLASSPATH=$CLASSPATH:$TT_PATH/sikulixapi-$API_VERSION-lux.jar
-    java -cp "$TT_PATH/sikulixapi-$API_VERSION-lux.jar:$TT_PATH/TrendTraderv2025.jar" org.sikuli.script.Runner
+    java -jar $TT_PATH/sikulixapi-$API_VERSION-lux.jar -r $TT_PATH/TrendTraderv2025.jar #" org.sikuli.script.Runner
     #java -jar /home/$(whoami)/Documents/TrendTraderv2025/TrendTraderv2025.jar 
 done
 
