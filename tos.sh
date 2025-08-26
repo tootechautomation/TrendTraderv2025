@@ -12,7 +12,7 @@ if [ ! -f  "./sikulixapi-$(API_VERSION)-lux.jar" ]; then
     LOCAL_PATH="$TT_PATH/sikulixapi-$API_VERSION-lux.jar"
     REMOTE_PATH="https://launchpad.net/sikuli/sikulix/$API_VERSION/+download/sikulixapi-$API_VERSION-lux.jar" 
     echo "File not found!"
-    curl -o $LOCAL_PATH $REMOTE_PATH   
+    wget -O $LOCAL_PATH $REMOTE_PATH   
 fi
 
 while $true; 
