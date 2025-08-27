@@ -15,6 +15,21 @@ if [ ! -f  "$TT_PATH/sikulixapi-$API_VERSION-lux.jar" ]; then
     wget -O $LOCAL_PATH $REMOTE_PATH   
 fi
 
+# Check if tesseract-ocr is installed
+if ! command -v tesseract &> /dev/null; then
+    echo "tesseract-ocr is not installed. Installing now..."
+    # Update package list and install tesseract-ocr
+    sudo apt update
+    sudo apt install tesseract-ocr -y
+    # Verify installation
+    if command -v tesseract &> /dev/null; then
+        echo "tesseract-ocr installed successfully."
+    else
+        echo "Failed to install tesseract-ocr."
+        exit 1
+    fi
+fi
+
 while $true; 
 do 
     export CLASSPATH=$CLASSPATH:$TT_PATH/sikulixapi-$API_VERSION-lux.jar
