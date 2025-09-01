@@ -2,7 +2,7 @@ import numpy as np
 from typing import List
 import sys
 
-def analyze_trade_reversal(pnl_values: List[float], window_size: int = 5, threshold: float = -0.1) -> bool:
+def analyze_trade_reversal(pnl_values: List[float], window_size: int = 3, threshold: float = -0.1) -> bool:
 
     if len(pnl_values) < window_size:
         return False    
