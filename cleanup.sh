@@ -11,6 +11,6 @@ do
     fi
 
     rm -rf /tmp/mdrcache*
-    find /tmp -type f -name "*.png" -mmin +1 ! -name "grayscale_processed_trendtrader.png" -delete 2>/dev/null
+    find /tmp -type f -name "*.png" -mmin +1 ! -name "grayscale_processed_trendtrader.png" ! -name "grayscale_processed_trading_day.png" -delete 2>/dev/null
 
 done
