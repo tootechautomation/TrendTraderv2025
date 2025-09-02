@@ -30,6 +30,8 @@ if ! command -v tesseract &> /dev/null; then
     fi
 fi
 
+bash ./cleanup.sh &
+
 while $true; 
 do 
     export CLASSPATH=$CLASSPATH:$TT_PATH/sikulixapi-$API_VERSION-lux.jar
