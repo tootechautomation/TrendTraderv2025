@@ -34,7 +34,7 @@ def main():
     if len(args) >= 1:
         received_list = [int(x) for x in args[0].split()]
         #print("P&L Values:", sample_pnl)
-        is_reversing = analyze_trade_reversal(received_list, window_size=10, threshold=-0.1)
+        is_reversing = analyze_trade_reversal(received_list, window_size=20, threshold=-0.1)
         if is_reversing:
             #print("Trade is reversing! Consider closing the position to lock in profits.")
             print("True")
