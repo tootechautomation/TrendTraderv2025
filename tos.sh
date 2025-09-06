@@ -39,5 +39,7 @@ do
     #java -jar /home/$(whoami)/Documents/TrendTraderv2025/TrendTraderv2025.jar 
 done
 
-
+# VNC XFCE
+#XAUTHORITY=$HOME/.Xauthority
+#export XAUTHORITY   
 
