@@ -91,5 +91,13 @@ Backtest speed: 3x
  1. Be sure to add your equity symbol into the indicator
 ![Ind_Add](https://github.com/tootechautomation/TrendTrader/assets/50243547/d46e09b5-d600-43ac-b7ab-3352e9b0e96b)
 
+
+
+
+
+
+VPS:
+https://www.scalahosting.com/blog/how-to-install-a-desktop-environment-on-my-ubuntu-vps/ (Config after XFCE and Ubuntu Desktop Installed)
+
  
 
