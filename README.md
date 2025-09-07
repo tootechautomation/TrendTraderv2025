@@ -97,6 +97,7 @@ Backtest speed: 3x
 
 
 VPS:
+Install Ubuntu Desktop - https://bitlaunch.io/blog/how-to-install-a-gui-on-your-ubuntu-vps-in-minutes/
 https://www.scalahosting.com/blog/how-to-install-a-desktop-environment-on-my-ubuntu-vps/ (Config after XFCE and Ubuntu Desktop Installed)
 
  
