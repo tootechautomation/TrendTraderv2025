@@ -100,5 +100,17 @@ VPS:
 Install Ubuntu Desktop - https://bitlaunch.io/blog/how-to-install-a-gui-on-your-ubuntu-vps-in-minutes/
 https://www.scalahosting.com/blog/how-to-install-a-desktop-environment-on-my-ubuntu-vps/ (Config after XFCE and Ubuntu Desktop Installed)
 
+sudo apt update
+sudo apt install xorg xvfb x11-xserver-utils
+
+#!/bin/bash
+Xvfb :99 -screen 0 1280x720x24 &
+export DISPLAY=:99
+xrandr --addmode DUMMY0 1280x720
+xrandr --output DUMMY0 --mode 1280x720
+
+chmod +x dummy_display.sh
+./dummy_display.sh
+
  
 
