@@ -37,12 +37,12 @@ fi
 bash ./cleanup.sh &
 
 
-if [ "$CHECK_LOCK" ]; then
+if [ "$CHECK_LOCK" == "true" ]; then
     echo "YES1"
     gsettings set org.mate.screensaver lock-enabled false
 fi
 
-if [ "$CHECK_IDLE" ]; then
+if [ "$CHECK_IDLE" == "true" ]; then
     echo "YES2"
     gsettings set org.mate.screensaver idle-activation-enabled false
 fi
