@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
@@ -45,15 +46,26 @@ import (
 // Config & Globals
 // =========================
 
+//type Config struct {
+//	Debug          bool
+//	SymbolLive     string
+//	ProfitAmount   int // e.g., 250
+//	LossAmount     int // negative (we convert if positive)
+//	DayStartTime   string
+//	HighTradeStop  bool
+//	ImageRoot      string // root_directory
+//	OCRWhitelistTD string // whitelist for trading day OCR
+//}
+
 type Config struct {
-	Debug          bool
-	SymbolLive     string
-	ProfitAmount   int // e.g., 250
-	LossAmount     int // negative (we convert if positive)
-	DayStartTime   string
+	ProfitTarget   int    `json:"profitTarget"`
+	LossLimit      int    `json:"lossLimit"`
+	TradeSymbol    string `json:"tradeSymbol"`
+	DayStartTime   string `json:"dayStartTime"`
 	HighTradeStop  bool
-	ImageRoot      string // root_directory
-	OCRWhitelistTD string // whitelist for trading day OCR
+	OCRWhitelistTD string
+	ImageRoot      string // set at runtime
+	Debug          bool   // internal use
 }
 
 type Region struct {
@@ -72,12 +84,13 @@ type Action struct {
 	Tmpl   gocv.Mat // loaded template
 }
 
+//SymbolLive:     "MESZ25",
+//ProfitAmount:   250,
+//LossAmount:     -300, // make negative if not already
+
 var (
 	cfg = Config{
 		Debug:          false,
-		SymbolLive:     "MESZ25",
-		ProfitAmount:   250,
-		LossAmount:     -300, // make negative if not already
 		DayStartTime:   "0630",
 		HighTradeStop:  true,
 		ImageRoot:      "", // set at runtime to cwd
@@ -173,6 +186,29 @@ func screenshotRegion(r Region) gocv.Mat {
 	mat, err := gocv.IMDecode(buf.Bytes(), gocv.IMReadColor)
 	must(err, "decode mat")
 	return mat
+}
+
+func loadConfig(path string) Config {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatalf("failed to read config.json: %v", err)
+	}
+	var c Config
+	if err := json.Unmarshal(data, &c); err != nil {
+		log.Fatalf("failed to parse config.json: %v", err)
+	}
+
+	// normalize values
+	if c.LossLimit > 0 {
+		c.LossLimit = -c.LossLimit
+	}
+	if c.DayStartTime == "" {
+		c.DayStartTime = "0630"
+	}
+	if c.OCRWhitelistTD == "" {
+		c.OCRWhitelistTD = "0123456789:,"
+	}
+	return c
 }
 
 func findOnceOnScreen(tmpl gocv.Mat) (Region, bool) {
@@ -680,8 +716,8 @@ func shortTradeProfitGate(tradeHigh, pnl int) bool {
 	if !cfg.HighTradeStop {
 		return false
 	}
-	if tradeHigh >= int(float64(cfg.ProfitAmount)*0.75) {
-		if pnl <= tradeHigh-200 && pnl >= (cfg.ProfitAmount/2+20) {
+	if tradeHigh >= int(float64(int(cfg.ProfitTarget))*0.75) {
+		if pnl <= tradeHigh-200 && pnl >= (int(cfg.ProfitTarget)/2+20) {
 			return true
 		}
 	}
@@ -783,9 +819,9 @@ func statusTick() {
 	fmt.Println("-------------------------------")
 	fmt.Printf("Account Type: %s\n", state.AccountType)
 	fmt.Println("-------------------------------")
-	fmt.Printf("SYMBOL: %s\n", cfg.SymbolLive)
-	fmt.Printf("PROFIT AMOUNT: %d\n", cfg.ProfitAmount)
-	fmt.Printf("LOSS AMOUNT: %d\n", cfg.LossAmount)
+	fmt.Printf("SYMBOL: %s\n", cfg.TradeSymbol)
+	fmt.Printf("PROFIT AMOUNT: %d\n", int(cfg.ProfitTarget))
+	fmt.Printf("LOSS AMOUNT: %d\n", int(cfg.LossLimit))
 	fmt.Println("-------------------------------")
 	fmt.Printf("Curr Trade Action: %s\n", state.CurrTrade)
 	fmt.Printf("Curr Position:     %s\n", state.CurrPos)
@@ -797,7 +833,7 @@ func statusTick() {
 
 func computeNextTarget(curr int) int {
 	// staircase target similar to your round_to_nearest_profit logic
-	p := cfg.ProfitAmount
+	p := int(cfg.ProfitTarget)
 	if p <= 0 {
 		p = 250
 	}
@@ -811,11 +847,12 @@ func computeNextTarget(curr int) int {
 
 func main() {
 	cwd, _ := os.Getwd()
+	cfg = loadConfig("config.json")
 	cfg.ImageRoot = cwd
 
 	// Normalize loss to negative
-	if cfg.LossAmount > 0 {
-		cfg.LossAmount = -cfg.LossAmount
+	if int(cfg.LossLimit) > 0 {
+		cfg.LossLimit = (cfg.LossLimit * -1)
 	}
 
 	// Preload templates
@@ -835,7 +872,7 @@ func main() {
 
 	// Seed target
 	stateMu.Lock()
-	state.TargetProfit = cfg.ProfitAmount + 20
+	state.TargetProfit = int(cfg.ProfitTarget) + 20
 	stateMu.Unlock()
 
 	// Start loops
@@ -876,7 +913,7 @@ func main() {
 				// next target uses staircase method (cap it sanely)
 				state.TargetProfit = computeNextTarget(pnl)
 				if state.TargetProfit > pnl*3 {
-					state.TargetProfit = pnl + (cfg.ProfitAmount + 20)
+					state.TargetProfit = pnl + (int(cfg.ProfitTarget) + 20)
 				}
 				stateMu.Unlock()
 				if state.AccountType == "virtual" {
@@ -887,7 +924,7 @@ func main() {
 			}
 
 			// 2) Loss stop => close immediately
-			if lossTaking(pnl, cfg.LossAmount) && pos != "noposition" {
+			if lossTaking(pnl, int(cfg.LossLimit)) && pos != "noposition" {
 				trade("close", pos, "loss")
 				statusTick()
 				continue

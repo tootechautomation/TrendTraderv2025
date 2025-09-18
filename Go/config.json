@@ -2,14 +2,5 @@
   "profitTarget": 1000.0,
   "lossLimit": -250.0,
   "tradeSymbol": "SOXL",
-  "templates": {
-    "Long": "Images/Routing/long.png",
-    "Short": "Images/Routing/short.png",
-    "Close": "Images/Routing/close_pos.png"
-  },
-  "positions": {
-    "NoPos": "Images/Position/nopos.png",
-    "LongPos": "Images/Position/longpos.png",
-    "ShortPos": "Images/Position/shortpos.png"
-  }
+  "dayStartTime": "0935"
 }
