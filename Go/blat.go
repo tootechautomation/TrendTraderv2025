@@ -867,12 +867,16 @@ func scanLoop(ctx context.Context) {
 			return
 		default:
 			refreshSymbolBox()
-			// Position first
-			scanOne("position")
-			// Then triggers
-			scanOne("trade")
+			if err := waitForVisibility("Images/Rumble/followtrend.png", 0.80, 500*time.Millisecond); err != nil {
+				log.Fatal("❌ waitForVisibility error:", err)
+			} else {
+				// Position first
+				scanOne("position")
+				// Then triggers
+				scanOne("trade")
+			}
+			time.Sleep(1000 * time.Millisecond)
 		}
-		time.Sleep(300 * time.Millisecond)
 	}
 }
 
@@ -977,84 +981,80 @@ func main() {
 	defer ticker.Stop()
 
 	for {
-		if err := waitForVisibility("Images/Rumble/followtrend.png", 0.80, 500*time.Millisecond); err != nil {
-			log.Fatal("❌ waitForVisibility error:", err)
-		} else {
-			select {
-			case <-ticker.C:
-				// pull snapshot
-				stateMu.Lock()
-				trig := state.Trade
-				pos := state.Position
-				pnl := state.PNL
-				high := state.TradeHigh
-				target := state.TargetProfit
+		select {
+		case <-ticker.C:
+			// pull snapshot
+			stateMu.Lock()
+			trig := state.Trade
+			pos := state.Position
+			pnl := state.PNL
+			high := state.TradeHigh
+			target := state.TargetProfit
 
-				// ignore duplicate trigger (Option A)
-				if trig == state.CurrTrade {
-					trig = ""
-				} else if trig != "" {
-					state.CurrTrade = trig
-				}
-
-				state.Trade = "" // consume once
-				stateMu.Unlock()
-
-				//fmt.Printf("DEBUG: trig=%s, pos=%s, currTrade=%s\n", trig, pos, state.CurrTrade)
-
-				// Decision logic ordering mirrors your script:
-				// 1) Profit hit => close & (virtual) go next day; reset target
-				if profitTaking(pnl, target) {
-					trade("close", pos, "profit")
-					stateMu.Lock()
-					// next target uses staircase method (cap it sanely)
-					state.TargetProfit = computeNextTarget(pnl)
-					if state.TargetProfit > pnl*3 {
-						state.TargetProfit = pnl + (int(cfg.ProfitTarget) + 20)
-					}
-					stateMu.Unlock()
-					if state.AccountType == "virtual" {
-						nextTradingDayVirtual()
-					}
-					//statusTick()
-					continue
-				}
-
-				// 2) Loss stop => close immediately
-				if lossTaking(pnl, int(cfg.LossLimit)) && pos != "noposition" {
-					trade("close", pos, "loss")
-					//statusTick()
-					continue
-				}
-
-				// 3) Optional “short trade” profit give-back
-				if shortTradeProfitGate(high, pnl) && pos != "noposition" {
-					trade("close", pos, "giveback")
-					//statusTick()
-					continue
-				}
-
-				// 4) Fresh trigger (ignore nomove)
-				if trig == "" {
-					trig = state.CurrTrade
-				}
-
-				if trig != "" && trig != "nomove" {
-					// trade only if position inconsistent
-					if (trig == "long" && pos == "noposition") ||
-						(trig == "short" && pos == "noposition") ||
-						(trig == "long" && pos == "shortposition") ||
-						(trig == "short" && pos == "longposition") {
-						trade(trig, pos, "")
-					}
-				}
-
-				//if trig != "" && trig != "nomove" {
-				//	trade(trig, pos, "")
-				//}
-
-				//statusTick()
+			// ignore duplicate trigger (Option A)
+			if trig == state.CurrTrade {
+				trig = ""
+			} else if trig != "" {
+				state.CurrTrade = trig
 			}
+
+			state.Trade = "" // consume once
+			stateMu.Unlock()
+
+			//fmt.Printf("DEBUG: trig=%s, pos=%s, currTrade=%s\n", trig, pos, state.CurrTrade)
+
+			// Decision logic ordering mirrors your script:
+			// 1) Profit hit => close & (virtual) go next day; reset target
+			if profitTaking(pnl, target) {
+				trade("close", pos, "profit")
+				stateMu.Lock()
+				// next target uses staircase method (cap it sanely)
+				state.TargetProfit = computeNextTarget(pnl)
+				if state.TargetProfit > pnl*3 {
+					state.TargetProfit = pnl + (int(cfg.ProfitTarget) + 20)
+				}
+				stateMu.Unlock()
+				if state.AccountType == "virtual" {
+					nextTradingDayVirtual()
+				}
+				//statusTick()
+				continue
+			}
+
+			// 2) Loss stop => close immediately
+			if lossTaking(pnl, int(cfg.LossLimit)) && pos != "noposition" {
+				trade("close", pos, "loss")
+				//statusTick()
+				continue
+			}
+
+			// 3) Optional “short trade” profit give-back
+			if shortTradeProfitGate(high, pnl) && pos != "noposition" {
+				trade("close", pos, "giveback")
+				//statusTick()
+				continue
+			}
+
+			// 4) Fresh trigger (ignore nomove)
+			if trig == "" {
+				trig = state.CurrTrade
+			}
+
+			if trig != "" && trig != "nomove" {
+				// trade only if position inconsistent
+				if (trig == "long" && pos == "noposition") ||
+					(trig == "short" && pos == "noposition") ||
+					(trig == "long" && pos == "shortposition") ||
+					(trig == "short" && pos == "longposition") {
+					trade(trig, pos, "")
+				}
+			}
+
+			//if trig != "" && trig != "nomove" {
+			//	trade(trig, pos, "")
+			//}
+
+			//statusTick()
 		}
 	}
 }
