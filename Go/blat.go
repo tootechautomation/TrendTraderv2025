@@ -386,7 +386,7 @@ func waitForVisibility(imgPath string, threshold float32, interval time.Duration
 	}
 	defer tmpl.Close()
 
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 11; i++ {
 		bounds := screenshot.GetDisplayBounds(0)
 		screen, err := captureToMat(bounds)
 		if err != nil {
@@ -400,7 +400,7 @@ func waitForVisibility(imgPath string, threshold float32, interval time.Duration
 			return nil
 		}
 
-		if i == 10 {
+		if i >= 10 {
 			cs := actions["change_symbol"]
 			if cs.Region == nil {
 				return nil
