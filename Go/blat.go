@@ -866,6 +866,8 @@ func main() {
 			state.Trade = "" // consume once
 			stateMu.Unlock()
 
+			fmt.Printf("DEBUG: trig=%s, pos=%s, currTrade=%s\n", trig, pos, state.CurrTrade)
+
 			// Decision logic ordering mirrors your script:
 			// 1) Profit hit => close & (virtual) go next day; reset target
 			if profitTaking(pnl, target) {
