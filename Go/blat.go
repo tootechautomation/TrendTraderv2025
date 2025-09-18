@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"image/color"
 	"image/png"
 	"log"
 	"math"
@@ -286,6 +287,29 @@ func detectAccountType() {
 	state.AccountType = "unknown"
 }
 
+func debugHighlight(r Region, label string) {
+	img := screenshotRegion(r)
+	gocv.Rectangle(&img, r.Rect(), color.RGBA{255, 0, 0, 0}, 2)
+	gocv.PutText(&img, label, image.Pt(r.X, r.Y-5),
+		gocv.FontHersheyPlain, 1.2, color.RGBA{0, 255, 0, 0}, 2)
+
+	win := gocv.NewWindow("DEBUG")
+	defer win.Close()
+	win.IMShow(img)
+	win.WaitKey(1000) // show 1 second
+}
+
+func showMouseCrosshair(x, y int) {
+	b := screenshot.GetDisplayBounds(0)
+	img := screenshotRegion(Region{b.Min.X, b.Min.Y, b.Dx(), b.Dy()})
+	gocv.Line(&img, image.Pt(x-10, y), image.Pt(x+10, y), color.RGBA{0, 0, 255, 0}, 2)
+	gocv.Line(&img, image.Pt(x, y-10), image.Pt(x, y+10), color.RGBA{0, 0, 255, 0}, 2)
+	win := gocv.NewWindow("MouseCrosshair")
+	defer win.Close()
+	win.IMShow(img)
+	win.WaitKey(1000)
+}
+
 // =========================
 // Symbol refresh (like refreshSymbol in Sikuli)
 // =========================
@@ -296,7 +320,14 @@ func refreshSymbolBox() {
 		return
 	}
 	// Click into the symbol field; send a small key ping that TOS uses to recalc the panes.
-	robotgo.MoveMouse(cs.Region.X+cs.Region.W, cs.Region.Y+cs.Region.H+30)
+	x := cs.Region.X + cs.Region.W/2
+	y := cs.Region.Y + cs.Region.H + 30
+	fmt.Printf("DEBUG: moving mouse to (%d,%d)\n", x, y)
+	robotgo.MoveMouseSmooth(x, y, 0.9, 0.5) // slower + visible
+	debugHighlight(*cs.Region, "change_symbol")
+	showMouseCrosshair(x, y)
+	//robotgo.MoveMouse(x, y)
+	//robotgo.MoveMouse(cs.Region.X+cs.Region.W, cs.Region.Y+cs.Region.H+30)
 	robotgo.MouseClick("left", false)
 	time.Sleep(100 * time.Millisecond)
 
