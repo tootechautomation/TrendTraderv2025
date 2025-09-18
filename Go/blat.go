@@ -321,12 +321,12 @@ func refreshSymbolBox() {
 	}
 	// Click into the symbol field; send a small key ping that TOS uses to recalc the panes.
 	x := cs.Region.X + cs.Region.W/2
-	y := cs.Region.Y + cs.Region.H + 30
-	fmt.Printf("DEBUG: moving mouse to (%d,%d)\n", x, y)
-	robotgo.MoveMouseSmooth(x, y, 0.9, 0.5) // slower + visible
-	debugHighlight(*cs.Region, "change_symbol")
+	y := cs.Region.Y + cs.Region.H + 5
+	//fmt.Printf("DEBUG: moving mouse to (%d,%d)\n", x, y)
+	//robotgo.MoveMouseSmooth(x, y, 0.9, 0.5) // slower + visible
+	//debugHighlight(*cs.Region, "change_symbol")
 	showMouseCrosshair(x, y)
-	//robotgo.MoveMouse(x, y)
+	robotgo.MoveMouse(x, y)
 	//robotgo.MoveMouse(cs.Region.X+cs.Region.W, cs.Region.Y+cs.Region.H+30)
 	robotgo.MouseClick("left", false)
 	time.Sleep(100 * time.Millisecond)
