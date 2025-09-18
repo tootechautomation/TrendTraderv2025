@@ -325,7 +325,7 @@ func refreshSymbolBox() {
 	//fmt.Printf("DEBUG: moving mouse to (%d,%d)\n", x, y)
 	//robotgo.MoveMouseSmooth(x, y, 0.9, 0.5) // slower + visible
 	//debugHighlight(*cs.Region, "change_symbol")
-	showMouseCrosshair(x, y)
+	//showMouseCrosshair(x, y)
 	robotgo.MoveMouse(x, y)
 	//robotgo.MoveMouse(cs.Region.X+cs.Region.W, cs.Region.Y+cs.Region.H+30)
 	robotgo.MouseClick("left", false)
