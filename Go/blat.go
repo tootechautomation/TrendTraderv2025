@@ -821,7 +821,7 @@ func main() {
 				trade(trig, pos, "")
 			}
 
-			statusTick()
+			//statusTick()
 		}
 	}
 }
