@@ -379,15 +379,13 @@ func refreshSymbolBox() {
 }
 
 func waitForVisibility(imgPath string, threshold float32, interval time.Duration) error {
-	//fmt.Printf("⏳ Waiting for %s to appear...\n", imgPath)
-
 	tmpl := gocv.IMRead(imgPath, gocv.IMReadColor)
 	if tmpl.Empty() {
 		return fmt.Errorf("failed to load image: %s", imgPath)
 	}
 	defer tmpl.Close()
 
-	for {
+	for i := 1; i <= 10; i++ {
 		bounds := screenshot.GetDisplayBounds(0)
 		screen, err := captureToMat(bounds)
 		if err != nil {
@@ -398,12 +396,35 @@ func waitForVisibility(imgPath string, threshold float32, interval time.Duration
 		screen.Close()
 
 		if found {
-			//fmt.Printf("✅ Found %s — continuing...\n", imgPath)
 			return nil
+		}
+
+		if i == 10 {
+			cs := actions["change_symbol"]
+			if cs.Region == nil {
+				return nil
+			}
+			// Click into the symbol field; send a small key ping that TOS uses to recalc the panes.
+			x := cs.Region.X + cs.Region.W/2
+			y := cs.Region.Y + cs.Region.H + 5
+			//fmt.Printf("DEBUG: moving mouse to (%d,%d)\n", x, y)
+			//robotgo.MoveMouseSmooth(x, y, 0.9, 0.5) // slower + visible
+			//debugHighlight(*cs.Region, "change_symbol")
+			//showMouseCrosshair(x, y)
+			robotgo.MoveMouse(x, y)
+			//robotgo.MoveMouse(cs.Region.X+cs.Region.W, cs.Region.Y+cs.Region.H+30)
+			robotgo.MouseClick("left", false)
+			time.Sleep(100 * time.Millisecond)
+
+			// Your original does RIGHT + "F" + ENTER, then RIGHT + BACKSPACE + ENTER sequence.
+			robotgo.TypeStr(cfg.TradeSymbol + "F")
+			robotgo.KeyTap("enter")
+			time.Sleep(100 * time.Millisecond)
 		}
 
 		time.Sleep(interval)
 	}
+	return nil
 }
 
 // Grayscale-based template matcher (robust against color/BGR differences)

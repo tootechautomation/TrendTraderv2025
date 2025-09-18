@@ -1,6 +1,6 @@
 {
-  "profitTarget": 1000.0,
-  "lossLimit": -250.0,
+  "profitTarget": 1000,
+  "lossLimit": -250,
   "tradeSymbol": "SOXL",
   "dayStartTime": "0935"
 }
