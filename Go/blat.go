@@ -871,9 +871,8 @@ func scanLoop(ctx context.Context) {
 			scanOne("position")
 			// Then triggers
 			scanOne("trade")
-			}
-			time.Sleep(300 * time.Millisecond)
 		}
+		time.Sleep(300 * time.Millisecond)
 	}
 }
 
