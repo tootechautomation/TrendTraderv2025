@@ -342,6 +342,76 @@ func refreshSymbolBox() {
 	robotgo.KeyTap("enter")
 }
 
+func waitForVisibility(imgPath string, threshold float32, interval time.Duration) error {
+	//fmt.Printf("⏳ Waiting for %s to appear...\n", imgPath)
+
+	tmpl := gocv.IMRead(imgPath, gocv.IMReadColor)
+	if tmpl.Empty() {
+		return fmt.Errorf("failed to load image: %s", imgPath)
+	}
+	defer tmpl.Close()
+
+	for {
+		bounds := screenshot.GetDisplayBounds(0)
+		screen, err := captureToMat(bounds)
+		if err != nil {
+			return fmt.Errorf("screenshot failed: %v", err)
+		}
+
+		found, _ := findTemplateGray(screen, tmpl, threshold)
+		screen.Close()
+
+		if found {
+			//fmt.Printf("✅ Found %s — continuing...\n", imgPath)
+			return nil
+		}
+
+		time.Sleep(interval)
+	}
+}
+
+// Grayscale-based template matcher (robust against color/BGR differences)
+func findTemplateGray(region gocv.Mat, tmpl gocv.Mat, threshold float32) (bool, image.Rectangle) {
+	if region.Empty() || tmpl.Empty() {
+		return false, image.Rectangle{}
+	}
+
+	// Convert both to grayscale
+	regionGray := gocv.NewMat()
+	tmplGray := gocv.NewMat()
+	defer regionGray.Close()
+	defer tmplGray.Close()
+
+	gocv.CvtColor(region, &regionGray, gocv.ColorBGRToGray)
+	gocv.CvtColor(tmpl, &tmplGray, gocv.ColorBGRToGray)
+
+	result := gocv.NewMat()
+	defer result.Close()
+
+	gocv.MatchTemplate(regionGray, tmplGray, &result, gocv.TmCcoeffNormed, gocv.NewMat())
+	_, maxVal, _, maxLoc := gocv.MinMaxLoc(result)
+
+	//fmt.Printf("🔎 [Gray] Match score %.2f\n", maxVal)
+
+	if maxVal >= threshold {
+		return true, image.Rect(maxLoc.X, maxLoc.Y, maxLoc.X+tmpl.Cols(), maxLoc.Y+tmpl.Rows())
+	}
+	return false, image.Rectangle{}
+}
+
+func captureToMat(r image.Rectangle) (gocv.Mat, error) {
+	robotgo.MilliSleep(50)
+	img, err := screenshot.CaptureRect(r)
+	if err != nil {
+		return gocv.Mat{}, err
+	}
+	mat, err := gocv.ImageToMatRGB(img)
+	if err != nil {
+		return gocv.Mat{}, err
+	}
+	return mat, nil
+}
+
 // =========================
 // OCR helpers
 // =========================
@@ -663,10 +733,14 @@ func scanLoop(ctx context.Context) {
 			return
 		default:
 			refreshSymbolBox()
-			// Position first
-			scanOne("position")
-			// Then triggers
-			scanOne("trade")
+			if err := waitForVisibility("Images/Rumble/followtrend.png", 0.80, 500*time.Millisecond); err != nil {
+				log.Fatal("❌ waitForVisibility error:", err)
+			} else {
+				// Position first
+				scanOne("position")
+				// Then triggers
+				scanOne("trade")
+			}
 			time.Sleep(300 * time.Millisecond)
 		}
 	}
