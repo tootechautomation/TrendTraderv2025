@@ -901,7 +901,12 @@ func main() {
 			}
 
 			// 4) Fresh trigger (ignore nomove)
+			if trig == "" {
+				trig = state.CurrTrade
+			}
+
 			if trig != "" && trig != "nomove" {
+				// trade only if position inconsistent
 				if (trig == "long" && pos == "noposition") ||
 					(trig == "short" && pos == "noposition") ||
 					(trig == "long" && pos == "shortposition") ||
