@@ -866,7 +866,7 @@ func main() {
 			state.Trade = "" // consume once
 			stateMu.Unlock()
 
-			fmt.Printf("DEBUG: trig=%s, pos=%s, currTrade=%s\n", trig, pos, state.CurrTrade)
+			//fmt.Printf("DEBUG: trig=%s, pos=%s, currTrade=%s\n", trig, pos, state.CurrTrade)
 
 			// Decision logic ordering mirrors your script:
 			// 1) Profit hit => close & (virtual) go next day; reset target
@@ -882,21 +882,21 @@ func main() {
 				if state.AccountType == "virtual" {
 					nextTradingDayVirtual()
 				}
-				//statusTick()
+				statusTick()
 				continue
 			}
 
 			// 2) Loss stop => close immediately
 			if lossTaking(pnl, cfg.LossAmount) && pos != "noposition" {
 				trade("close", pos, "loss")
-				//statusTick()
+				statusTick()
 				continue
 			}
 
 			// 3) Optional “short trade” profit give-back
 			if shortTradeProfitGate(high, pnl) && pos != "noposition" {
 				trade("close", pos, "giveback")
-				//statusTick()
+				statusTick()
 				continue
 			}
 
@@ -919,7 +919,7 @@ func main() {
 			//	trade(trig, pos, "")
 			//}
 
-			//statusTick()
+			statusTick()
 		}
 	}
 }
