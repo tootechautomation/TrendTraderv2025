@@ -798,21 +798,21 @@ func main() {
 				if state.AccountType == "virtual" {
 					nextTradingDayVirtual()
 				}
-				statusTick()
+				//statusTick()
 				continue
 			}
 
 			// 2) Loss stop => close immediately
 			if lossTaking(pnl, cfg.LossAmount) && pos != "noposition" {
 				trade("close", pos, "loss")
-				statusTick()
+				//statusTick()
 				continue
 			}
 
 			// 3) Optional “short trade” profit give-back
 			if shortTradeProfitGate(high, pnl) && pos != "noposition" {
 				trade("close", pos, "giveback")
-				statusTick()
+				//statusTick()
 				continue
 			}
 
