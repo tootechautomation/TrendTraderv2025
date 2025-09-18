@@ -84,9 +84,10 @@ type Action struct {
 	Tmpl   gocv.Mat // loaded template
 }
 
-//SymbolLive:     "MESZ25",
-//ProfitAmount:   250,
-//LossAmount:     -300, // make negative if not already
+// SymbolLive:     "MESZ25",
+// ProfitAmount:   250,
+// LossAmount:     -300, // make negative if not already
+var lastTradeTime time.Time
 
 var (
 	cfg = Config{
@@ -623,9 +624,114 @@ func clickAction(name string) {
 	robotgo.MouseClick("left", false)
 }
 
+/*
+*
+
+	func trade(action, position string, reason string) {
+		// Enforce semantics:
+		// - nomove => ignore
+		if action == "nomove" {
+			return
+		}
+
+		wait := func() { time.Sleep(2 * time.Second) }
+		resetPNL := func() {
+			stateMu.Lock()
+			state.TradeHigh = 0
+			state.PNL = 0
+			state.PNL_fast = 0
+			stateMu.Unlock()
+		}
+
+		switch {
+		// enter new from flat
+		case action == "long" && position == "noposition":
+			clickAction("buy")
+			stateMu.Lock()
+			state.Position = "longposition"
+			state.CurrPos = "longposition"
+			state.TradeHigh = 0
+			stateMu.Unlock()
+			resetPNL()
+			wait()
+		case action == "short" && position == "noposition":
+			clickAction("sell")
+			stateMu.Lock()
+			state.Position = "shortposition"
+			state.CurrPos = "shortposition"
+			state.TradeHigh = 0
+			stateMu.Unlock()
+			resetPNL()
+			wait()
+
+		// flip
+		case action == "long" && position == "shortposition":
+			clickAction("buy")
+			clickAction("buy")
+			stateMu.Lock()
+			state.Position = "longposition"
+			state.CurrPos = "longposition"
+			state.TradeHigh = 0
+			stateMu.Unlock()
+			resetPNL()
+			wait()
+		case action == "short" && position == "longposition":
+			clickAction("sell")
+			clickAction("sell")
+			stateMu.Lock()
+			state.Position = "shortposition"
+			state.CurrPos = "shortposition"
+			state.TradeHigh = 0
+			stateMu.Unlock()
+			resetPNL()
+			wait()
+
+		// hold on same side (no clicks)
+		case action == "long" && position == "longposition":
+			// no-op
+		case action == "short" && position == "shortposition":
+			// no-op
+
+		// close if holding
+		case action == "close" && position == "longposition":
+			clickAction("sell")
+			stateMu.Lock()
+			state.Position = "noposition"
+			state.CurrPos = "noposition"
+			state.TradeHigh = 0
+			stateMu.Unlock()
+			resetPNL()
+			wait()
+		case action == "close" && position == "shortposition":
+			clickAction("buy")
+			stateMu.Lock()
+			state.Position = "noposition"
+			state.CurrPos = "noposition"
+			state.TradeHigh = 0
+			stateMu.Unlock()
+			resetPNL()
+			wait()
+
+		// close when already flat (mostly “market closed” flow)
+		case action == "close" && position == "noposition":
+			// no clicks; allow next-day workflow to proceed
+			stateMu.Lock()
+			state.TradeHigh = 0
+			stateMu.Unlock()
+			resetPNL()
+			wait()
+		}
+	}
+
+*
+*/
 func trade(action, position string, reason string) {
+	// block if within 3s of last trade
+	if time.Since(lastTradeTime) < 3*time.Second {
+		return
+	}
+
 	// Enforce semantics:
-	// - nomove => ignore
 	if action == "nomove" {
 		return
 	}
@@ -640,7 +746,6 @@ func trade(action, position string, reason string) {
 	}
 
 	switch {
-	// enter new from flat
 	case action == "long" && position == "noposition":
 		clickAction("buy")
 		stateMu.Lock()
@@ -650,6 +755,8 @@ func trade(action, position string, reason string) {
 		stateMu.Unlock()
 		resetPNL()
 		wait()
+		lastTradeTime = time.Now() // ✅ mark trade time
+
 	case action == "short" && position == "noposition":
 		clickAction("sell")
 		stateMu.Lock()
@@ -659,8 +766,8 @@ func trade(action, position string, reason string) {
 		stateMu.Unlock()
 		resetPNL()
 		wait()
+		lastTradeTime = time.Now()
 
-	// flip
 	case action == "long" && position == "shortposition":
 		clickAction("buy")
 		clickAction("buy")
@@ -671,6 +778,8 @@ func trade(action, position string, reason string) {
 		stateMu.Unlock()
 		resetPNL()
 		wait()
+		lastTradeTime = time.Now()
+
 	case action == "short" && position == "longposition":
 		clickAction("sell")
 		clickAction("sell")
@@ -681,41 +790,9 @@ func trade(action, position string, reason string) {
 		stateMu.Unlock()
 		resetPNL()
 		wait()
+		lastTradeTime = time.Now()
 
-	// hold on same side (no clicks)
-	case action == "long" && position == "longposition":
-		// no-op
-	case action == "short" && position == "shortposition":
-		// no-op
-
-	// close if holding
-	case action == "close" && position == "longposition":
-		clickAction("sell")
-		stateMu.Lock()
-		state.Position = "noposition"
-		state.CurrPos = "noposition"
-		state.TradeHigh = 0
-		stateMu.Unlock()
-		resetPNL()
-		wait()
-	case action == "close" && position == "shortposition":
-		clickAction("buy")
-		stateMu.Lock()
-		state.Position = "noposition"
-		state.CurrPos = "noposition"
-		state.TradeHigh = 0
-		stateMu.Unlock()
-		resetPNL()
-		wait()
-
-	// close when already flat (mostly “market closed” flow)
-	case action == "close" && position == "noposition":
-		// no clicks; allow next-day workflow to proceed
-		stateMu.Lock()
-		state.TradeHigh = 0
-		stateMu.Unlock()
-		resetPNL()
-		wait()
+		// (other close cases … also set lastTradeTime at the end)
 	}
 }
 
