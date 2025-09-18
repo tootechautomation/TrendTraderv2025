@@ -855,6 +855,14 @@ func main() {
 			pnl := state.PNL
 			high := state.TradeHigh
 			target := state.TargetProfit
+
+			// ignore duplicate trigger (Option A)
+			if trig == state.CurrTrade {
+				trig = ""
+			} else if trig != "" {
+				state.CurrTrade = trig
+			}
+
 			state.Trade = "" // consume once
 			stateMu.Unlock()
 
@@ -892,8 +900,17 @@ func main() {
 
 			// 4) Fresh trigger (ignore nomove)
 			if trig != "" && trig != "nomove" {
-				trade(trig, pos, "")
+				if (trig == "long" && pos == "noposition") ||
+					(trig == "short" && pos == "noposition") ||
+					(trig == "long" && pos == "shortposition") ||
+					(trig == "short" && pos == "longposition") {
+					trade(trig, pos, "")
+				}
 			}
+
+			//if trig != "" && trig != "nomove" {
+			//	trade(trig, pos, "")
+			//}
 
 			//statusTick()
 		}
