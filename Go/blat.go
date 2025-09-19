@@ -590,22 +590,57 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
-	// ✅ Clean up region for OCR
-	clean := cleanForOCR(img)
-	defer clean.Close()
+	// Convert to grayscale
+	gray := gocv.NewMat()
+	defer gray.Close()
+	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
 
-	tmp := "/tmp/pnl_ocr.png"
-	if ok := gocv.IMWrite(tmp, clean); !ok {
+	// Apply Otsu threshold to clean up
+	thresh := gocv.NewMat()
+	defer thresh.Close()
+	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
+
+	// Enlarge ×3 to simulate high DPI
+	enlarged := gocv.NewMat()
+	defer enlarged.Close()
+	newWidth := thresh.Cols() * 3
+	newHeight := thresh.Rows() * 3
+	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
+
+	// Save debug image
+	tmp := "/tmp/td_ocr.png"
+	if ok := gocv.IMWrite(tmp, enlarged); !ok {
 		fmt.Println("⚠️ failed to write OCR temp file")
 	}
 
 	ocrMu.Lock()
 	defer ocrMu.Unlock()
 
+	// Language
+	//_ = ocr.SetLanguage("eng")
+	//_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	//_ = ocr.SetVariable("tessedit_char_whitelist", "1234567890:")
+	//_ = ocr.SetVariable("user_defined_dpi", "300")
+
+	// Image
+	//_ = ocr.SetImage(tmp)
+
+	//// ✅ Clean up region for OCR
+	//clean := cleanForOCR(img)
+	//defer clean.Close()
+
+	//tmp := "/tmp/pnl_ocr.png"
+	//if ok := gocv.IMWrite(tmp, clean); !ok {
+	//	fmt.Println("⚠️ failed to write OCR temp file")
+	//}
+
+	//ocrMu.Lock()
+	//defer ocrMu.Unlock()
+
 	_ = ocr.SetLanguage("eng")
 	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD)
 	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
-	_ = ocr.SetVariable("classify_bln_numeric_mode", "1")
+	//_ = ocr.SetVariable("classify_bln_numeric_mode", "1")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
 	_ = ocr.SetImage(tmp)
 
