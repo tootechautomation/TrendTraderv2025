@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -542,25 +541,24 @@ func ocrLossPNLFromRegion(r Region) (int, error) {
 		return 0, err
 	}
 
+	// Parse into int
+	val := parseIntLike(text)
+
 	// ✅ sanity check: reject outliers vs. last 3
-	dayVal, err := strconv.Atoi(parts[2])
-	if err == nil {
-		avg := mean(pnllossocrHistory)
-		if avg > 0 && float64(dayVal) > avg*5 { // "super distorted"
-			fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", dayVal, avg)
-			// fallback to last good value
-			if len(pnllossocrHistory) > 0 {
-				parts[2] = strconv.Itoa(pnllossocrHistory[len(pnllossocrHistory)-1])
-			}
-		} else {
-			// keep good values
-			pnllossocrHistory = append(pnllossocrHistory, dayVal)
-			if len(pnllossocrHistory) > historySize {
-				pnllossocrHistory = pnllossocrHistory[1:] // drop oldest
-			}
+	avg := mean(pnllossocrHistory)
+	if avg > 0 && float64(val) > avg*5 {
+		fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", val, avg)
+		if len(pnllossocrHistory) > 0 {
+			val = pnllossocrHistory[len(pnllossocrHistory)-1]
+		}
+	} else {
+		pnllossocrHistory = append(pnllossocrHistory, val)
+		if len(pnllossocrHistory) > historySize {
+			pnllossocrHistory = pnllossocrHistory[1:]
 		}
 	}
-	return parseIntLike(text), nil
+
+	return val, nil
 }
 
 func ocrProfitPNLFromRegion(r Region) (int, error) {
@@ -611,26 +609,24 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// Parse into int
+	val := parseIntLike(text)
 
 	// ✅ sanity check: reject outliers vs. last 3
-	dayVal, err := strconv.Atoi(parts[2])
-	if err == nil {
-		avg := mean(pnlprofitocrHistory)
-		if avg > 0 && float64(dayVal) > avg*5 { // "super distorted"
-			fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", dayVal, avg)
-			// fallback to last good value
-			if len(pnlprofitocrHistory) > 0 {
-				parts[2] = strconv.Itoa(pnlprofitocrHistory[len(pnlprofitocrHistory)-1])
-			}
-		} else {
-			// keep good values
-			pnlprofitocrHistory = append(pnlprofitocrHistory, dayVal)
-			if len(pnlprofitocrHistory) > historySize {
-				pnlprofitocrHistory = pnlprofitocrHistory[1:] // drop oldest
-			}
+	avg := mean(pnlprofitocrHistory)
+	if avg > 0 && float64(val) > avg*5 {
+		fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", val, avg)
+		if len(pnlprofitocrHistory) > 0 {
+			val = pnlprofitocrHistory[len(pnlprofitocrHistory)-1]
+		}
+	} else {
+		pnlprofitocrHistory = append(pnlprofitocrHistory, val)
+		if len(pnlprofitocrHistory) > historySize {
+			pnlprofitocrHistory = pnlprofitocrHistory[1:]
 		}
 	}
-	return parseIntLike(text), nil
+
+	return val, nil
 }
 
 func parseIntLike(s string) int {
