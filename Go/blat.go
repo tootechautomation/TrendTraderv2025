@@ -541,6 +541,16 @@ func ocrLossPNLFromRegion(r Region) (int, error) {
 		return 0, err
 	}
 
+	// ✅ Handle accounting negatives like "(200)"
+	if idx := strings.Index(text, "("); idx != -1 {
+		// remove everything before the "("
+		text = text[idx:]
+		// replace "(" with "-"
+		text = strings.ReplaceAll(text, "(", "-")
+		// drop ")"
+		text = strings.ReplaceAll(text, ")", "")
+	}
+
 	// Parse into int
 	val := parseIntLike(text)
 
@@ -608,6 +618,16 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
 	if err != nil {
 		return 0, err
+	}
+
+	// ✅ Handle accounting negatives like "(200)"
+	if idx := strings.Index(text, "("); idx != -1 {
+		// remove everything before the "("
+		text = text[idx:]
+		// replace "(" with "-"
+		text = strings.ReplaceAll(text, "(", "-")
+		// drop ")"
+		text = strings.ReplaceAll(text, ")", "")
 	}
 	// Parse into int
 	val := parseIntLike(text)
