@@ -711,57 +711,39 @@ func readTradingDayFromHUD() (year, month, day int) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
-	//// Convert to grayscale
-	//gray := gocv.NewMat()
-	//defer gray.Close()
-	//gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
+	// Convert to grayscale
+	gray := gocv.NewMat()
+	defer gray.Close()
+	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
 
 	// Apply Otsu threshold to clean up
-	//thresh := gocv.NewMat()
-	//defer thresh.Close()
-	//gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
+	thresh := gocv.NewMat()
+	defer thresh.Close()
+	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
 
 	// Enlarge ×3 to simulate high DPI
-	//enlarged := gocv.NewMat()
-	//defer enlarged.Close()
-	//newWidth := thresh.Cols() * 3
-	//newHeight := thresh.Rows() * 3
-	//gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
+	enlarged := gocv.NewMat()
+	defer enlarged.Close()
+	newWidth := thresh.Cols() * 3
+	newHeight := thresh.Rows() * 3
+	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
 
 	// Save debug image
-	//tmp := "/tmp/td_ocr.png"
-	//if ok := gocv.IMWrite(tmp, enlarged); !ok {
-	//	fmt.Println("⚠️ failed to write OCR temp file")
-	//}
-
-	//ocrMu.Lock()
-	//defer ocrMu.Unlock()
-
-	// Language
-	//_ = ocr.SetLanguage("eng")
-	//_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
-	//_ = ocr.SetVariable("tessedit_char_whitelist", "1234567890:")
-	//_ = ocr.SetVariable("user_defined_dpi", "300")
-
-	// Image
-	//_ = ocr.SetImage(tmp)
-	// ✅ Clean up region for OCR
-	clean := cleanForOCR(img)
-	defer clean.Close()
-
-	tmp := "/tmp/pnl_ocr.png"
-	if ok := gocv.IMWrite(tmp, clean); !ok {
+	tmp := "/tmp/td_ocr.png"
+	if ok := gocv.IMWrite(tmp, enlarged); !ok {
 		fmt.Println("⚠️ failed to write OCR temp file")
 	}
 
 	ocrMu.Lock()
 	defer ocrMu.Unlock()
 
+	// Language
 	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD)
-	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
-	_ = ocr.SetVariable("classify_bln_numeric_mode", "1")
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	_ = ocr.SetVariable("tessedit_char_whitelist", "1234567890:")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
+
+	// Image
 	_ = ocr.SetImage(tmp)
 
 	text, err := ocr.Text()
@@ -1087,8 +1069,8 @@ func main() {
 	stateMu.Unlock()
 
 	// Start loops
-	go scanLoop(stopCtx)
-	go pnlLoop(stopCtx)
+	//go scanLoop(stopCtx)
+	//go pnlLoop(stopCtx)
 
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
@@ -1096,80 +1078,109 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			// pull snapshot
-			stateMu.Lock()
-			trig := state.Trade
-			pos := state.Position
-			pnl := state.PNL
-			high := state.TradeHigh
-			target := state.TargetProfit
+			refreshSymbolBox()
+			if err := waitForVisibility("Images/Rumble/followtrend.png", 0.80, 500*time.Millisecond); err != nil {
+				log.Fatal("❌ waitForVisibility error:", err)
+			} else {
+				anchor := actions["profitx"]
+				if anchor == nil || anchor.Region == nil {
+					return
+				}
+				// typical offsets – tune to your UI
+				rFast := Region{X: anchor.Region.X + 35, Y: anchor.Region.Y + 8, W: anchor.Region.W + 22, H: anchor.Region.H - 10}
+				rSlow := Region{X: anchor.Region.X + 35, Y: anchor.Region.Y - 15, W: anchor.Region.W + 22, H: anchor.Region.H - 10}
 
-			// ignore duplicate trigger (Option A)
-			if trig == state.CurrTrade {
-				trig = ""
-			} else if trig != "" {
-				state.CurrTrade = trig
-			}
-
-			state.Trade = "" // consume once
-			stateMu.Unlock()
-
-			//fmt.Printf("DEBUG: trig=%s, pos=%s, currTrade=%s\n", trig, pos, state.CurrTrade)
-
-			// Decision logic ordering mirrors your script:
-			// 1) Profit hit => close & (virtual) go next day; reset target
-			if profitTaking(pnl, target) {
-				trade("close", pos, "profit")
+				p0, _ := ocrProfitPNLFromRegion(rFast)
+				p1, _ := ocrLossPNLFromRegion(rSlow)
 				stateMu.Lock()
-				// next target uses staircase method (cap it sanely)
-				state.TargetProfit = computeNextTarget(pnl)
-				if state.TargetProfit > pnl*3 {
-					state.TargetProfit = pnl + (int(cfg.ProfitTarget) + 20)
+				state.PNL = p0
+				state.PNL_fast = p1
+				if cfg.HighTradeStop && p0 > state.TradeHigh {
+					state.TradeHigh = p0
 				}
 				stateMu.Unlock()
-				if state.AccountType == "virtual" {
-					nextTradingDayVirtual()
-					time.Sleep(5 * time.Second)
-					year, month, day = readTradingDayFromHUD()
+
+				// Position first
+				scanOne("position")
+				// Then triggers
+				scanOne("trade")
+
+				time.Sleep(500 * time.Millisecond)
+				// pull snapshot
+				stateMu.Lock()
+				trig := state.Trade
+				pos := state.Position
+				pnl := state.PNL
+				high := state.TradeHigh
+				target := state.TargetProfit
+
+				// ignore duplicate trigger (Option A)
+				if trig == state.CurrTrade {
+					trig = ""
+				} else if trig != "" {
+					state.CurrTrade = trig
 				}
-				statusTick()
-				continue
-			}
 
-			// 2) Loss stop => close immediately
-			if lossTaking(pnl, int(cfg.LossLimit)) && pos != "noposition" {
-				trade("close", pos, "loss")
-				statusTick()
-				continue
-			}
+				state.Trade = "" // consume once
+				stateMu.Unlock()
 
-			// 3) Optional “short trade” profit give-back
-			if shortTradeProfitGate(high, pnl) && pos != "noposition" {
-				trade("close", pos, "giveback")
-				statusTick()
-				continue
-			}
+				//fmt.Printf("DEBUG: trig=%s, pos=%s, currTrade=%s\n", trig, pos, state.CurrTrade)
 
-			// 4) Fresh trigger (ignore nomove)
-			if trig == "" {
-				trig = state.CurrTrade
-			}
-
-			if trig != "" && trig != "nomove" {
-				// trade only if position inconsistent
-				if (trig == "long" && pos == "noposition") ||
-					(trig == "short" && pos == "noposition") ||
-					(trig == "long" && pos == "shortposition") ||
-					(trig == "short" && pos == "longposition") {
-					trade(trig, pos, "")
+				// Decision logic ordering mirrors your script:
+				// 1) Profit hit => close & (virtual) go next day; reset target
+				if profitTaking(pnl, target) {
+					trade("close", pos, "profit")
+					stateMu.Lock()
+					// next target uses staircase method (cap it sanely)
+					state.TargetProfit = computeNextTarget(pnl)
+					if state.TargetProfit > pnl*3 {
+						state.TargetProfit = pnl + (int(cfg.ProfitTarget) + 20)
+					}
+					stateMu.Unlock()
+					if state.AccountType == "virtual" {
+						nextTradingDayVirtual()
+						time.Sleep(5 * time.Second)
+						year, month, day = readTradingDayFromHUD()
+					}
+					statusTick()
+					continue
 				}
+
+				// 2) Loss stop => close immediately
+				if lossTaking(pnl, int(cfg.LossLimit)) && pos != "noposition" {
+					trade("close", pos, "loss")
+					statusTick()
+					continue
+				}
+
+				// 3) Optional “short trade” profit give-back
+				if shortTradeProfitGate(high, pnl) && pos != "noposition" {
+					trade("close", pos, "giveback")
+					statusTick()
+					continue
+				}
+
+				// 4) Fresh trigger (ignore nomove)
+				if trig == "" {
+					trig = state.CurrTrade
+				}
+
+				if trig != "" && trig != "nomove" {
+					// trade only if position inconsistent
+					if (trig == "long" && pos == "noposition") ||
+						(trig == "short" && pos == "noposition") ||
+						(trig == "long" && pos == "shortposition") ||
+						(trig == "short" && pos == "longposition") {
+						trade(trig, pos, "")
+					}
+				}
+
+				//if trig != "" && trig != "nomove" {
+				//	trade(trig, pos, "")
+				//}
+
+				statusTick()
 			}
-
-			//if trig != "" && trig != "nomove" {
-			//	trade(trig, pos, "")
-			//}
-
-			statusTick()
 		}
 	}
 }
