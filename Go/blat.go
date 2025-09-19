@@ -493,48 +493,62 @@ func mean(vals []int) float64 {
 	return float64(sum) / float64(len(vals))
 }
 
+// cleanForOCR preprocesses a region for OCR:
+//   - Grayscale
+//   - Otsu threshold
+//   - Median blur (denoise jaggies)
+//   - Morph close (remove stray dots/holes)
+//   - Enlarge ×3 with crisp nearest-neighbor scaling
+func cleanForOCR(img gocv.Mat) gocv.Mat {
+	// Convert to grayscale
+	gray := gocv.NewMat()
+	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
+
+	// Otsu threshold
+	thresh := gocv.NewMat()
+	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
+	gray.Close()
+
+	// Smooth jaggies
+	gocv.MedianBlur(thresh, &thresh, 3)
+
+	// Morphological cleanup
+	kernel := gocv.GetStructuringElement(gocv.MorphRect, image.Pt(2, 2))
+	gocv.MorphologyEx(thresh, &thresh, gocv.MorphClose, kernel)
+	kernel.Close()
+
+	// Enlarge ×3 (crisp scaling)
+	enlarged := gocv.NewMat()
+	gocv.Resize(thresh, &enlarged,
+		image.Pt(thresh.Cols()*3, thresh.Rows()*3),
+		0, 0, gocv.InterpolationNearestNeighbor)
+
+	thresh.Close()
+
+	return enlarged
+}
+
 func ocrLossPNLFromRegion(r Region) (int, error) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
-	//tmp := "/tmp/pnl_ocr.png"
-	//ok := gocv.IMWrite(tmp, img)
-	//if !ok {
-	//	return 0, fmt.Errorf("failed to write temp png")
-	//}
+	// ✅ Clean up region for OCR
+	clean := cleanForOCR(img)
+	defer clean.Close()
 
-	// Convert to grayscale
-	gray := gocv.NewMat()
-	defer gray.Close()
-	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
-
-	// Apply Otsu threshold to clean up
-	thresh := gocv.NewMat()
-	defer thresh.Close()
-	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
-
-	// Enlarge ×3 to simulate high DPI
-	enlarged := gocv.NewMat()
-	defer enlarged.Close()
-	newWidth := thresh.Cols() * 3
-	newHeight := thresh.Rows() * 3
-	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
-
-	// Save debug image
 	tmp := "/tmp/pnl_ocr.png"
-	if ok := gocv.IMWrite(tmp, enlarged); !ok {
+	if ok := gocv.IMWrite(tmp, clean); !ok {
 		fmt.Println("⚠️ failed to write OCR temp file")
 	}
 
-	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_LINE) // gosseract constant for PSM=8
-	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
-	_ = ocr.SetVariable("user_defined_dpi", "300")
-
 	ocrMu.Lock()
 	defer ocrMu.Unlock()
-	//_ = ocr.SetWhitelist("0123456789()-.,")
 
+	_ = ocr.SetLanguage("eng")
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD)
+	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
+	_ = ocr.SetVariable("classify_bln_numeric_mode", "1")
+	_ = ocr.SetVariable("user_defined_dpi", "300")
 	_ = ocr.SetImage(tmp)
 	text, err := ocr.Text()
 	//fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
@@ -558,7 +572,7 @@ func ocrLossPNLFromRegion(r Region) (int, error) {
 	// ✅ sanity check: reject outliers vs. last 3
 	avg := mean(pnllossocrHistory)
 	if avg > 0 && float64(val) > avg*5 {
-		fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", val, avg)
+		//fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", val, avg)
 		if len(pnllossocrHistory) > 0 {
 			val = pnllossocrHistory[len(pnllossocrHistory)-1]
 		}
@@ -576,45 +590,25 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
-	//tmp := "/tmp/pnl_ocr.png"
-	//ok := gocv.IMWrite(tmp, img)
-	//if !ok {
-	//	return 0, fmt.Errorf("failed to write temp png")
-	//}
+	// ✅ Clean up region for OCR
+	clean := cleanForOCR(img)
+	defer clean.Close()
 
-	// Convert to grayscale
-	gray := gocv.NewMat()
-	defer gray.Close()
-	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
-
-	// Apply Otsu threshold to clean up
-	thresh := gocv.NewMat()
-	defer thresh.Close()
-	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
-
-	// Enlarge ×3 to simulate high DPI
-	enlarged := gocv.NewMat()
-	defer enlarged.Close()
-	newWidth := thresh.Cols() * 3
-	newHeight := thresh.Rows() * 3
-	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
-
-	// Save debug image
 	tmp := "/tmp/pnl_ocr.png"
-	if ok := gocv.IMWrite(tmp, enlarged); !ok {
+	if ok := gocv.IMWrite(tmp, clean); !ok {
 		fmt.Println("⚠️ failed to write OCR temp file")
 	}
 
-	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_LINE) // gosseract constant for PSM=8
-	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
-	_ = ocr.SetVariable("user_defined_dpi", "300")
-
 	ocrMu.Lock()
 	defer ocrMu.Unlock()
-	//_ = ocr.SetWhitelist("0123456789()-.,")
 
+	_ = ocr.SetLanguage("eng")
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD)
+	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
+	_ = ocr.SetVariable("classify_bln_numeric_mode", "1")
+	_ = ocr.SetVariable("user_defined_dpi", "300")
 	_ = ocr.SetImage(tmp)
+
 	text, err := ocr.Text()
 	//fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
 	if err != nil {
@@ -636,7 +630,7 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	// ✅ sanity check: reject outliers vs. last 3
 	avg := mean(pnlprofitocrHistory)
 	if avg > 0 && float64(val) > avg*5 {
-		fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", val, avg)
+		//fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", val, avg)
 		if len(pnlprofitocrHistory) > 0 {
 			val = pnlprofitocrHistory[len(pnlprofitocrHistory)-1]
 		}
@@ -717,39 +711,57 @@ func readTradingDayFromHUD() (year, month, day int) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
-	// Convert to grayscale
-	gray := gocv.NewMat()
-	defer gray.Close()
-	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
+	//// Convert to grayscale
+	//gray := gocv.NewMat()
+	//defer gray.Close()
+	//gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
 
 	// Apply Otsu threshold to clean up
-	thresh := gocv.NewMat()
-	defer thresh.Close()
-	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
+	//thresh := gocv.NewMat()
+	//defer thresh.Close()
+	//gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
 
 	// Enlarge ×3 to simulate high DPI
-	enlarged := gocv.NewMat()
-	defer enlarged.Close()
-	newWidth := thresh.Cols() * 3
-	newHeight := thresh.Rows() * 3
-	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
+	//enlarged := gocv.NewMat()
+	//defer enlarged.Close()
+	//newWidth := thresh.Cols() * 3
+	//newHeight := thresh.Rows() * 3
+	//gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
 
 	// Save debug image
-	tmp := "/tmp/td_ocr.png"
-	if ok := gocv.IMWrite(tmp, enlarged); !ok {
+	//tmp := "/tmp/td_ocr.png"
+	//if ok := gocv.IMWrite(tmp, enlarged); !ok {
+	//	fmt.Println("⚠️ failed to write OCR temp file")
+	//}
+
+	//ocrMu.Lock()
+	//defer ocrMu.Unlock()
+
+	// Language
+	//_ = ocr.SetLanguage("eng")
+	//_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	//_ = ocr.SetVariable("tessedit_char_whitelist", "1234567890:")
+	//_ = ocr.SetVariable("user_defined_dpi", "300")
+
+	// Image
+	//_ = ocr.SetImage(tmp)
+	// ✅ Clean up region for OCR
+	clean := cleanForOCR(img)
+	defer clean.Close()
+
+	tmp := "/tmp/pnl_ocr.png"
+	if ok := gocv.IMWrite(tmp, clean); !ok {
 		fmt.Println("⚠️ failed to write OCR temp file")
 	}
 
 	ocrMu.Lock()
 	defer ocrMu.Unlock()
 
-	// Language
 	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
-	_ = ocr.SetVariable("tessedit_char_whitelist", "1234567890:")
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD)
+	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
+	_ = ocr.SetVariable("classify_bln_numeric_mode", "1")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
-
-	// Image
 	_ = ocr.SetImage(tmp)
 
 	text, err := ocr.Text()
