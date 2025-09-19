@@ -400,7 +400,7 @@ func waitForVisibility(imgPath string, threshold float32, interval time.Duration
 			return nil
 		}
 
-		if i >= 10 {
+		if i >= 5 {
 			cs := actions["change_symbol"]
 			if cs.Region == nil {
 				return nil
@@ -541,17 +541,23 @@ func parseIntLike(s string) int {
 // Trading day OCR (year:month:day from a small HUD region)
 // =========================
 
-func readTradingDayFromHUD(anchor *Action) (year, month, day string) {
+func readTradingDayFromHUD() (year, month, day string) {
+	// Use the "rumble" image as the anchor
+	anchor := actions["rumble"]
 	if anchor == nil || anchor.Region == nil {
 		return "", "", ""
 	}
-	// Sample a small strip offset from anchor (tuned like your script)
+
+	// Define region relative to followtrend anchor
 	r := Region{
 		X: anchor.Region.X + 119,
 		Y: anchor.Region.Y + 5,
 		W: anchor.Region.W + 20,
 		H: anchor.Region.H - 10,
 	}
+
+	debugHighlight(r, "TradingDayOCR")
+
 	img := screenshotRegion(r)
 	defer img.Close()
 
@@ -566,11 +572,13 @@ func readTradingDayFromHUD(anchor *Action) (year, month, day string) {
 	if err != nil || strings.TrimSpace(text) == "" {
 		return "", "", ""
 	}
+
 	text = strings.TrimSpace(text)
 	parts := strings.Split(strings.ReplaceAll(text, " ", ""), ":")
 	if len(parts) < 3 {
 		return "", "", ""
 	}
+
 	yr := parts[0]
 	if len(yr) == 5 {
 		yr = yr[1:]
@@ -623,107 +631,6 @@ func clickAction(name string) {
 	robotgo.MouseClick("left", false)
 }
 
-/*
-*
-
-	func trade(action, position string, reason string) {
-		// Enforce semantics:
-		// - nomove => ignore
-		if action == "nomove" {
-			return
-		}
-
-		wait := func() { time.Sleep(2 * time.Second) }
-		resetPNL := func() {
-			stateMu.Lock()
-			state.TradeHigh = 0
-			state.PNL = 0
-			state.PNL_fast = 0
-			stateMu.Unlock()
-		}
-
-		switch {
-		// enter new from flat
-		case action == "long" && position == "noposition":
-			clickAction("buy")
-			stateMu.Lock()
-			state.Position = "longposition"
-			state.CurrPos = "longposition"
-			state.TradeHigh = 0
-			stateMu.Unlock()
-			resetPNL()
-			wait()
-		case action == "short" && position == "noposition":
-			clickAction("sell")
-			stateMu.Lock()
-			state.Position = "shortposition"
-			state.CurrPos = "shortposition"
-			state.TradeHigh = 0
-			stateMu.Unlock()
-			resetPNL()
-			wait()
-
-		// flip
-		case action == "long" && position == "shortposition":
-			clickAction("buy")
-			clickAction("buy")
-			stateMu.Lock()
-			state.Position = "longposition"
-			state.CurrPos = "longposition"
-			state.TradeHigh = 0
-			stateMu.Unlock()
-			resetPNL()
-			wait()
-		case action == "short" && position == "longposition":
-			clickAction("sell")
-			clickAction("sell")
-			stateMu.Lock()
-			state.Position = "shortposition"
-			state.CurrPos = "shortposition"
-			state.TradeHigh = 0
-			stateMu.Unlock()
-			resetPNL()
-			wait()
-
-		// hold on same side (no clicks)
-		case action == "long" && position == "longposition":
-			// no-op
-		case action == "short" && position == "shortposition":
-			// no-op
-
-		// close if holding
-		case action == "close" && position == "longposition":
-			clickAction("sell")
-			stateMu.Lock()
-			state.Position = "noposition"
-			state.CurrPos = "noposition"
-			state.TradeHigh = 0
-			stateMu.Unlock()
-			resetPNL()
-			wait()
-		case action == "close" && position == "shortposition":
-			clickAction("buy")
-			stateMu.Lock()
-			state.Position = "noposition"
-			state.CurrPos = "noposition"
-			state.TradeHigh = 0
-			stateMu.Unlock()
-			resetPNL()
-			wait()
-
-		// close when already flat (mostly “market closed” flow)
-		case action == "close" && position == "noposition":
-			// no clicks; allow next-day workflow to proceed
-			stateMu.Lock()
-			state.TradeHigh = 0
-			stateMu.Unlock()
-			resetPNL()
-			wait()
-		}
-	}
-
-*
-*/
 func trade(action, position string, reason string) {
 	// block if within 3s of last trade
 	if time.Since(lastTradeTime) < 3*time.Second {
@@ -966,6 +873,8 @@ func main() {
 
 	// Detect account
 	detectAccountType()
+
+	readTradingDayFromHUD()
 
 	// Seed target
 	stateMu.Lock()
