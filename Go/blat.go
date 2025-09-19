@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -88,11 +89,18 @@ type Action struct {
 // ProfitAmount:   250,
 // LossAmount:     -300, // make negative if not already
 var lastTradeTime time.Time
+var year = 0
+var month = 0
+var day = 0
+var pnlprofitocrHistory []int
+
+const historySize = 3
+
+var pnllossocrHistory []int
 
 var (
 	cfg = Config{
 		Debug:          false,
-		DayStartTime:   "0630",
 		HighTradeStop:  true,
 		ImageRoot:      "", // set at runtime to cwd
 		OCRWhitelistTD: "0123456789:,",
@@ -473,23 +481,154 @@ func captureToMat(r image.Rectangle) (gocv.Mat, error) {
 // OCR helpers
 // =========================
 
-func ocrPNLFromRegion(r Region) (int, error) {
+// helper to compute mean of slice
+func mean(vals []int) float64 {
+	if len(vals) == 0 {
+		return 0
+	}
+	sum := 0
+	for _, v := range vals {
+		sum += v
+	}
+	return float64(sum) / float64(len(vals))
+}
+
+func ocrLossPNLFromRegion(r Region) (int, error) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
+	//tmp := "/tmp/pnl_ocr.png"
+	//ok := gocv.IMWrite(tmp, img)
+	//if !ok {
+	//	return 0, fmt.Errorf("failed to write temp png")
+	//}
+
+	// Convert to grayscale
+	gray := gocv.NewMat()
+	defer gray.Close()
+	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
+
+	// Apply Otsu threshold to clean up
+	thresh := gocv.NewMat()
+	defer thresh.Close()
+	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
+
+	// Enlarge ×3 to simulate high DPI
+	enlarged := gocv.NewMat()
+	defer enlarged.Close()
+	newWidth := thresh.Cols() * 3
+	newHeight := thresh.Rows() * 3
+	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
+
+	// Save debug image
 	tmp := "/tmp/pnl_ocr.png"
-	ok := gocv.IMWrite(tmp, img)
-	if !ok {
-		return 0, fmt.Errorf("failed to write temp png")
+	if ok := gocv.IMWrite(tmp, enlarged); !ok {
+		fmt.Println("⚠️ failed to write OCR temp file")
 	}
+
+	_ = ocr.SetLanguage("eng")
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
+	_ = ocr.SetVariable("user_defined_dpi", "300")
+
 	ocrMu.Lock()
 	defer ocrMu.Unlock()
-	_ = ocr.SetWhitelist("0123456789()-.,")
+	//_ = ocr.SetWhitelist("0123456789()-.,")
 
 	_ = ocr.SetImage(tmp)
 	text, err := ocr.Text()
+	fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
 	if err != nil {
 		return 0, err
+	}
+
+	// ✅ sanity check: reject outliers vs. last 3
+	dayVal, err := strconv.Atoi(parts[2])
+	if err == nil {
+		avg := mean(pnllossocrHistory)
+		if avg > 0 && float64(dayVal) > avg*5 { // "super distorted"
+			fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", dayVal, avg)
+			// fallback to last good value
+			if len(pnllossocrHistory) > 0 {
+				parts[2] = strconv.Itoa(pnllossocrHistory[len(pnllossocrHistory)-1])
+			}
+		} else {
+			// keep good values
+			pnllossocrHistory = append(pnllossocrHistory, dayVal)
+			if len(pnllossocrHistory) > historySize {
+				pnllossocrHistory = pnllossocrHistory[1:] // drop oldest
+			}
+		}
+	}
+	return parseIntLike(text), nil
+}
+
+func ocrProfitPNLFromRegion(r Region) (int, error) {
+	img := screenshotRegion(r)
+	defer img.Close()
+
+	//tmp := "/tmp/pnl_ocr.png"
+	//ok := gocv.IMWrite(tmp, img)
+	//if !ok {
+	//	return 0, fmt.Errorf("failed to write temp png")
+	//}
+
+	// Convert to grayscale
+	gray := gocv.NewMat()
+	defer gray.Close()
+	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
+
+	// Apply Otsu threshold to clean up
+	thresh := gocv.NewMat()
+	defer thresh.Close()
+	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
+
+	// Enlarge ×3 to simulate high DPI
+	enlarged := gocv.NewMat()
+	defer enlarged.Close()
+	newWidth := thresh.Cols() * 3
+	newHeight := thresh.Rows() * 3
+	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
+
+	// Save debug image
+	tmp := "/tmp/pnl_ocr.png"
+	if ok := gocv.IMWrite(tmp, enlarged); !ok {
+		fmt.Println("⚠️ failed to write OCR temp file")
+	}
+
+	_ = ocr.SetLanguage("eng")
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
+	_ = ocr.SetVariable("user_defined_dpi", "300")
+
+	ocrMu.Lock()
+	defer ocrMu.Unlock()
+	//_ = ocr.SetWhitelist("0123456789()-.,")
+
+	_ = ocr.SetImage(tmp)
+	text, err := ocr.Text()
+	fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
+	if err != nil {
+		return 0, err
+	}
+
+	// ✅ sanity check: reject outliers vs. last 3
+	dayVal, err := strconv.Atoi(parts[2])
+	if err == nil {
+		avg := mean(pnlprofitocrHistory)
+		if avg > 0 && float64(dayVal) > avg*5 { // "super distorted"
+			fmt.Printf("🚫 OCR outlier ignored: %d vs avg %.1f\n", dayVal, avg)
+			// fallback to last good value
+			if len(pnlprofitocrHistory) > 0 {
+				parts[2] = strconv.Itoa(pnlprofitocrHistory[len(pnlprofitocrHistory)-1])
+			}
+		} else {
+			// keep good values
+			pnlprofitocrHistory = append(pnlprofitocrHistory, dayVal)
+			if len(pnlprofitocrHistory) > historySize {
+				pnlprofitocrHistory = pnlprofitocrHistory[1:] // drop oldest
+			}
+		}
 	}
 	return parseIntLike(text), nil
 }
@@ -561,20 +700,48 @@ func readTradingDayFromHUD() (year, month, day string) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
+	// Convert to grayscale
+	gray := gocv.NewMat()
+	defer gray.Close()
+	gocv.CvtColor(img, &gray, gocv.ColorBGRToGray)
+
+	// Apply Otsu threshold to clean up
+	thresh := gocv.NewMat()
+	defer thresh.Close()
+	gocv.Threshold(gray, &thresh, 0, 255, gocv.ThresholdBinary|gocv.ThresholdOtsu)
+
+	// Enlarge ×3 to simulate high DPI
+	enlarged := gocv.NewMat()
+	defer enlarged.Close()
+	newWidth := thresh.Cols() * 3
+	newHeight := thresh.Rows() * 3
+	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
+
+	// Save debug image
 	tmp := "/tmp/td_ocr.png"
-	_ = gocv.IMWrite(tmp, img)
+	if ok := gocv.IMWrite(tmp, enlarged); !ok {
+		fmt.Println("⚠️ failed to write OCR temp file")
+	}
 
 	ocrMu.Lock()
 	defer ocrMu.Unlock()
-	_ = ocr.SetWhitelist(cfg.OCRWhitelistTD)
+
+	// Language
+	_ = ocr.SetLanguage("eng")
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	_ = ocr.SetVariable("tessedit_char_whitelist", "1234567890:")
+	_ = ocr.SetVariable("user_defined_dpi", "300")
+
+	// Image
 	_ = ocr.SetImage(tmp)
+
 	text, err := ocr.Text()
-	if err != nil || strings.TrimSpace(text) == "" {
+	if err != nil {
+		fmt.Println("⚠️ OCR error:", err)
 		return "", "", ""
 	}
-
 	text = strings.TrimSpace(text)
-	fmt.Printf("TEXT: %v", text)
+
 	parts := strings.Split(strings.ReplaceAll(text, " ", ""), ":")
 	if len(parts) < 3 {
 		return "", "", ""
@@ -584,7 +751,11 @@ func readTradingDayFromHUD() (year, month, day string) {
 	if len(yr) == 5 {
 		yr = yr[1:]
 	}
-	return yr, parts[1], parts[2]
+	year = yr
+	month = parts[1]
+	day = parts[2]
+	return
+	//return yr, parts[1], parts[2]
 }
 
 // =========================
@@ -750,8 +921,8 @@ func pnlLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			p0, _ := ocrPNLFromRegion(rFast)
-			p1, _ := ocrPNLFromRegion(rSlow)
+			p0, _ := ocrProfitPNLFromRegion(rFast)
+			p1, _ := ocrLossPNLFromRegion(rSlow)
 			stateMu.Lock()
 			state.PNL = p0
 			state.PNL_fast = p1
@@ -824,6 +995,7 @@ func statusTick() {
 	fmt.Println("-------------------------------")
 	fmt.Printf("Account Type: %s\n", state.AccountType)
 	fmt.Println("-------------------------------")
+	fmt.Printf("Current Trade Date: %v %v, %v", month, day, year)
 	fmt.Printf("SYMBOL: %s\n", cfg.TradeSymbol)
 	fmt.Printf("PROFIT AMOUNT: %d\n", int(cfg.ProfitTarget))
 	fmt.Printf("LOSS AMOUNT: %d\n", int(cfg.LossLimit))
@@ -874,11 +1046,8 @@ func main() {
 
 	// Detect account
 	detectAccountType()
-
-	year, month, day := readTradingDayFromHUD()
-	fmt.Printf("YEAR: %v", year)
-	fmt.Printf("MONTH: %v", month)
-	fmt.Printf("DAY: %v", day)
+	// Get Year, Month, Day
+	readTradingDayFromHUD()
 
 	// Seed target
 	stateMu.Lock()
@@ -928,22 +1097,24 @@ func main() {
 				stateMu.Unlock()
 				if state.AccountType == "virtual" {
 					nextTradingDayVirtual()
+					time.Sleep(5 * time.Second)
+					readTradingDayFromHUD()
 				}
-				//statusTick()
+				statusTick()
 				continue
 			}
 
 			// 2) Loss stop => close immediately
 			if lossTaking(pnl, int(cfg.LossLimit)) && pos != "noposition" {
 				trade("close", pos, "loss")
-				//statusTick()
+				statusTick()
 				continue
 			}
 
 			// 3) Optional “short trade” profit give-back
 			if shortTradeProfitGate(high, pnl) && pos != "noposition" {
 				trade("close", pos, "giveback")
-				//statusTick()
+				statusTick()
 				continue
 			}
 
@@ -966,7 +1137,7 @@ func main() {
 			//	trade(trig, pos, "")
 			//}
 
-			//statusTick()
+			statusTick()
 		}
 	}
 }
