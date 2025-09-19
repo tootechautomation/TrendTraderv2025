@@ -556,7 +556,7 @@ func readTradingDayFromHUD() (year, month, day string) {
 		H: anchor.Region.H - 10,
 	}
 
-	debugHighlight(r, "TradingDayOCR")
+	//debugHighlight(r, "TradingDayOCR")
 
 	img := screenshotRegion(r)
 	defer img.Close()
@@ -874,7 +874,10 @@ func main() {
 	// Detect account
 	detectAccountType()
 
-	readTradingDayFromHUD()
+	year, month, day := readTradingDayFromHUD()
+	fmt.Printf("YEAR: %v", year)
+	fmt.Printf("MONTH: %v", month)
+	fmt.Printf("DAY: %v", day)
 
 	// Seed target
 	stateMu.Lock()
