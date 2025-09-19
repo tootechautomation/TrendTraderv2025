@@ -927,8 +927,8 @@ func pnlLoop(ctx context.Context) {
 		return
 	}
 	// typical offsets – tune to your UI
-	rFast := Region{X: anchor.Region.X + 35, Y: anchor.Region.Y + 8, W: anchor.Region.W + 22, H: anchor.Region.H - 10}
-	rSlow := Region{X: anchor.Region.X + 35, Y: anchor.Region.Y - 15, W: anchor.Region.W + 22, H: anchor.Region.H - 10}
+	rFast := Region{X: anchor.Region.X + 40, Y: anchor.Region.Y + 8, W: anchor.Region.W + 17, H: anchor.Region.H - 10}
+	rSlow := Region{X: anchor.Region.X + 40, Y: anchor.Region.Y - 15, W: anchor.Region.W + 17, H: anchor.Region.H - 10}
 
 	t := time.NewTicker(500 * time.Millisecond)
 	defer t.Stop()
