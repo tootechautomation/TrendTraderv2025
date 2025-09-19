@@ -416,9 +416,11 @@ func waitForVisibility(imgPath string, threshold float32, interval time.Duration
 			//robotgo.MoveMouse(cs.Region.X+cs.Region.W, cs.Region.Y+cs.Region.H+30)
 			robotgo.MouseClick("left", false)
 			time.Sleep(100 * time.Millisecond)
+			robotgo.KeyTap("a", "ctrl")
 
 			// Your original does RIGHT + "F" + ENTER, then RIGHT + BACKSPACE + ENTER sequence.
-			robotgo.TypeStr(cfg.TradeSymbol + "F")
+			robotgo.KeyTap("enter")
+			robotgo.TypeStr(cfg.TradeSymbol)
 			robotgo.KeyTap("enter")
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -875,7 +877,7 @@ func scanLoop(ctx context.Context) {
 				// Then triggers
 				scanOne("trade")
 			}
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 }
