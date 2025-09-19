@@ -574,6 +574,7 @@ func readTradingDayFromHUD() (year, month, day string) {
 	}
 
 	text = strings.TrimSpace(text)
+	fmt.Printf("TEXT: %v", text)
 	parts := strings.Split(strings.ReplaceAll(text, " ", ""), ":")
 	if len(parts) < 3 {
 		return "", "", ""
