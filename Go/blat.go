@@ -417,9 +417,6 @@ func waitForVisibility(imgPath string, threshold float32, interval time.Duration
 			robotgo.MouseClick("left", false)
 			time.Sleep(100 * time.Millisecond)
 			robotgo.KeyTap("a", "ctrl")
-
-			// Your original does RIGHT + "F" + ENTER, then RIGHT + BACKSPACE + ENTER sequence.
-			robotgo.KeyTap("enter")
 			robotgo.TypeStr(cfg.TradeSymbol)
 			robotgo.KeyTap("enter")
 			time.Sleep(100 * time.Millisecond)
