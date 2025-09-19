@@ -527,7 +527,7 @@ func ocrLossPNLFromRegion(r Region) (int, error) {
 
 	_ = ocr.SetLanguage("eng")
 	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_BLOCK) // gosseract constant for PSM=8
-	//_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
+	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
 
 	ocrMu.Lock()
@@ -606,7 +606,7 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 
 	_ = ocr.SetLanguage("eng")
 	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_BLOCK) // gosseract constant for PSM=8
-	//_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
+	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
 
 	ocrMu.Lock()
@@ -927,8 +927,8 @@ func pnlLoop(ctx context.Context) {
 		return
 	}
 	// typical offsets – tune to your UI
-	rFast := Region{X: anchor.Region.X + 25, Y: anchor.Region.Y + 8, W: anchor.Region.W + 32, H: anchor.Region.H - 10}
-	rSlow := Region{X: anchor.Region.X + 25, Y: anchor.Region.Y - 15, W: anchor.Region.W + 32, H: anchor.Region.H - 10}
+	rFast := Region{X: anchor.Region.X + 35, Y: anchor.Region.Y + 8, W: anchor.Region.W + 22, H: anchor.Region.H - 10}
+	rSlow := Region{X: anchor.Region.X + 35, Y: anchor.Region.Y - 15, W: anchor.Region.W + 22, H: anchor.Region.H - 10}
 
 	t := time.NewTicker(500 * time.Millisecond)
 	defer t.Stop()
