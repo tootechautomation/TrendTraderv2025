@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -696,11 +697,11 @@ func parseIntLike(s string) int {
 // Trading day OCR (year:month:day from a small HUD region)
 // =========================
 
-func readTradingDayFromHUD() (year, month, day string) {
+func readTradingDayFromHUD() (year, month, day int) {
 	// Use the "rumble" image as the anchor
 	anchor := actions["rumble"]
 	if anchor == nil || anchor.Region == nil {
-		return "", "", ""
+		return 0, 0, 0
 	}
 
 	// Define region relative to followtrend anchor
@@ -754,24 +755,27 @@ func readTradingDayFromHUD() (year, month, day string) {
 	text, err := ocr.Text()
 	if err != nil {
 		fmt.Println("⚠️ OCR error:", err)
-		return "", "", ""
+		return 0, 0, 0
 	}
 	text = strings.TrimSpace(text)
 
 	parts := strings.Split(strings.ReplaceAll(text, " ", ""), ":")
 	if len(parts) < 3 {
-		return "", "", ""
+		return 0, 0, 0
 	}
 
+	// Clean year (sometimes OCR adds an extra digit)
 	yr := parts[0]
 	if len(yr) == 5 {
 		yr = yr[1:]
 	}
-	year = yr
-	month = parts[1]
-	day = parts[2]
-	return
-	//return yr, parts[1], parts[2]
+
+	// Convert all parts to int safely
+	y, _ := strconv.Atoi(yr)
+	m, _ := strconv.Atoi(parts[1])
+	d, _ := strconv.Atoi(parts[2])
+
+	return y, m, d
 }
 
 // =========================
@@ -1063,7 +1067,7 @@ func main() {
 	// Detect account
 	detectAccountType()
 	// Get Year, Month, Day
-	readTradingDayFromHUD()
+	year, month, day = readTradingDayFromHUD()
 
 	// Seed target
 	stateMu.Lock()
@@ -1114,7 +1118,7 @@ func main() {
 				if state.AccountType == "virtual" {
 					nextTradingDayVirtual()
 					time.Sleep(5 * time.Second)
-					readTradingDayFromHUD()
+					year, month, day = readTradingDayFromHUD()
 				}
 				statusTick()
 				continue
