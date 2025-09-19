@@ -526,7 +526,7 @@ func ocrLossPNLFromRegion(r Region) (int, error) {
 	}
 
 	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_BLOCK) // gosseract constant for PSM=8
 	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
 
@@ -605,7 +605,7 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	}
 
 	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_WORD) // gosseract constant for PSM=8
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_BLOCK) // gosseract constant for PSM=8
 	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
 
