@@ -526,7 +526,7 @@ func ocrLossPNLFromRegion(r Region) (int, error) {
 	}
 
 	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_BLOCK) // gosseract constant for PSM=8
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_LINE) // gosseract constant for PSM=8
 	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
 
@@ -575,13 +575,12 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	img := screenshotRegion(r)
 	defer img.Close()
 
-	tmp := "/tmp/pnl_ocr.png"
-	ok := gocv.IMWrite(tmp, img)
-	if !ok {
-		return 0, fmt.Errorf("failed to write temp png")
-	}
-	/**
-	/
+	//tmp := "/tmp/pnl_ocr.png"
+	//ok := gocv.IMWrite(tmp, img)
+	//if !ok {
+	//	return 0, fmt.Errorf("failed to write temp png")
+	//}
+
 	// Convert to grayscale
 	gray := gocv.NewMat()
 	defer gray.Close()
@@ -598,15 +597,15 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 	newWidth := thresh.Cols() * 3
 	newHeight := thresh.Rows() * 3
 	gocv.Resize(thresh, &enlarged, image.Pt(newWidth, newHeight), 0, 0, gocv.InterpolationLinear)
-	**/
+
 	// Save debug image
-	//tmp := "/tmp/pnl_ocr.png"
-	//if ok := gocv.IMWrite(img, tmp); !ok {
-	//	fmt.Println("⚠️ failed to write OCR temp file")
-	//}
+	tmp := "/tmp/pnl_ocr.png"
+	if ok := gocv.IMWrite(tmp, enlarged); !ok {
+		fmt.Println("⚠️ failed to write OCR temp file")
+	}
 
 	_ = ocr.SetLanguage("eng")
-	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_BLOCK) // gosseract constant for PSM=8
+	_ = ocr.SetPageSegMode(gosseract.PSM_SINGLE_LINE) // gosseract constant for PSM=8
 	_ = ocr.SetVariable("tessedit_char_whitelist", "0123456789()-.,")
 	_ = ocr.SetVariable("user_defined_dpi", "300")
 
