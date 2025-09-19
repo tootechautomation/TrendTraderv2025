@@ -537,7 +537,7 @@ func ocrLossPNLFromRegion(r Region) (int, error) {
 
 	_ = ocr.SetImage(tmp)
 	text, err := ocr.Text()
-	fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
+	//fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
 	if err != nil {
 		return 0, err
 	}
@@ -616,7 +616,7 @@ func ocrProfitPNLFromRegion(r Region) (int, error) {
 
 	_ = ocr.SetImage(tmp)
 	text, err := ocr.Text()
-	fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
+	//fmt.Printf("📝 PNL OCR raw text: '%s'\n", text)
 	if err != nil {
 		return 0, err
 	}
@@ -1015,7 +1015,7 @@ func statusTick() {
 	fmt.Println("-------------------------------")
 	fmt.Printf("Account Type: %s\n", state.AccountType)
 	fmt.Println("-------------------------------")
-	fmt.Printf("Current Trade Date: %v %v, %v", month, day, year)
+	fmt.Printf("Current Trade Date: %v %v, %v\n", month, day, year)
 	fmt.Printf("SYMBOL: %s\n", cfg.TradeSymbol)
 	fmt.Printf("PROFIT AMOUNT: %d\n", int(cfg.ProfitTarget))
 	fmt.Printf("LOSS AMOUNT: %d\n", int(cfg.LossLimit))
